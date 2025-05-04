@@ -7,7 +7,7 @@ import { InputView } from 'src/sections/input/view';
 export default function Page() {
   return (
     <>
-      <title>{`Users - ${CONFIG.appName}`}</title>
+      <title>{`入力 - ${CONFIG.appName}`}</title>
 
       <InputView />
     </>

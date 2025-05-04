@@ -15,9 +15,6 @@ import { RouterLink } from 'src/routes/components';
 import { Logo } from 'src/components/logo';
 import { Scrollbar } from 'src/components/scrollbar';
 
-import { NavUpgrade } from '../components/nav-upgrade';
-import { WorkspacesPopover } from '../components/workspaces-popover';
-
 import type { NavItem } from '../nav-config-dashboard';
 import type { WorkspacesPopoverProps } from '../components/workspaces-popover';
 
@@ -55,7 +52,7 @@ export function NavDesktop({
         flexDirection: 'column',
         zIndex: 'var(--layout-nav-zIndex)',
         width: 'var(--layout-nav-vertical-width)',
-        borderRight: `1px solid ${varAlpha(theme.vars.palette.grey['500Channel'], 0.12)}`,
+        borderRight: `1px solid ${varAlpha(theme.palette.grey['500Channel'], 0.12)}`,
         [theme.breakpoints.up(layoutQuery)]: {
           display: 'flex',
         },
@@ -156,14 +153,14 @@ export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
                         borderRadius: 0.75,
                         typography: 'body2',
                         fontWeight: 'fontWeightMedium',
-                        color: theme.vars.palette.text.secondary,
+                        color: theme.palette.text.secondary,
                         minHeight: 44,
                         ...(isActived && {
                           fontWeight: 'fontWeightSemiBold',
-                          color: theme.vars.palette.primary.main,
-                          bgcolor: varAlpha(theme.vars.palette.primary.mainChannel, 0.08),
+                          color: theme.palette.primary.main,
+                          bgcolor: varAlpha(theme.palette.primary.lighterChannel, 0.08),
                           '&:hover': {
-                            bgcolor: varAlpha(theme.vars.palette.primary.mainChannel, 0.16),
+                            bgcolor: varAlpha(theme.palette.primary.lighterChannel, 0.16),
                           },
                         }),
                       }),

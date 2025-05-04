@@ -21,6 +21,7 @@ export default class Member {
     public email: string | null,
     public role: Role,
     public lectureDay: DayOfWeek[],
+    public isCompetitionMember: boolean,
   ) {}
 
   static fromSchema(data: MemberResult) {
@@ -33,6 +34,7 @@ export default class Member {
       data.email,
       data.role,
       data.lectureDay,
+      data.isCompetitionMember,
     );
   }
 
@@ -105,8 +107,9 @@ export default class Member {
       const email = update.email || this.email;
       const role = update.role || this.role;
       const lectureDay = update.lectureDay || this.lectureDay;
+      const isCompetitionMember = update.isCompetitionMember || this.isCompetitionMember;
 
-      return new Member(this.id, part, generation, name, nameKana, email, role, lectureDay);
+      return new Member(this.id, part, generation, name, nameKana, email, role, lectureDay, isCompetitionMember);
     } catch (e) {
       throw APIError.fromError(e);
     }
@@ -119,6 +122,34 @@ export default class Member {
   getGrade(grades: Grade[]): Grade | undefined {
     return grades.find((g) => g.generation === this.generation);
   }
+
+  static async setCompetition(members: Member[], is_competition: boolean): Promise<boolean> {
+    const ids = members.map((m) => m.id);
+    try {
+      const result = await axios.patch(
+        `/member/competition/${is_competition}`,
+        ids,
+      );
+
+      return result.data.result;
+    } catch (e) {
+      throw APIError.fromError(e);
+    }
+  }
+
+  copy(): Member {
+    return new Member(
+      this.id,
+      this.part,
+      this.generation,
+      this.name,
+      this.nameKana,
+      this.email,
+      this.role,
+      this.lectureDay,
+      this.isCompetitionMember,
+    );
+  }
 }
 
 export const MemberSchema = z.object({
@@ -130,6 +161,7 @@ export const MemberSchema = z.object({
   email: z.string().email().nullable(),
   role: z.string().transform(Role.valueOf),
   lectureDay: z.array(z.string()).transform((data) => data.map(DayOfWeek.valueOf).sort((a, b) => a.num > b.num ? 1 : -1)),
+  isCompetitionMember: z.boolean(),
 });
 export const MemberArraySchema = z.array(MemberSchema);
 type MemberResult = z.infer<typeof MemberSchema>;
@@ -142,6 +174,7 @@ export const MemberPostSchema = z.object({
   email: z.string().email().or(z.literal('')).transform((email) => (email === '' ? null : email)),
   role: z.instanceof(Role).transform((role) => role.value),
   lectureDay: z.array(z.instanceof(DayOfWeek)).transform((data) => data.map((d) => d.value)),
+  isCompetitionMember: z.boolean(),
 });
 export const MemberArrayPostSchema = z.array(MemberPostSchema);
 

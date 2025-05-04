@@ -23,14 +23,14 @@ const baseChartOptions = (theme: Theme): ChartOptions => {
   const LABEL_TOTAL = {
     show: true,
     label: 'Total',
-    color: theme.vars.palette.text.secondary,
+    color: theme.palette.text.secondary,
     fontSize: theme.typography.subtitle2.fontSize as string,
     fontWeight: theme.typography.subtitle2.fontWeight,
   };
 
   const LABEL_VALUE = {
     offsetY: 8,
-    color: theme.vars.palette.text.primary,
+    color: theme.palette.text.primary,
     fontSize: theme.typography.h4.fontSize as string,
     fontWeight: theme.typography.h4.fontWeight,
   };
@@ -45,7 +45,7 @@ const baseChartOptions = (theme: Theme): ChartOptions => {
       zoom: { enabled: false },
       parentHeightOffset: 0,
       fontFamily: theme.typography.fontFamily,
-      foreColor: theme.vars.palette.text.disabled,
+      foreColor: theme.palette.text.disabled,
       animations: {
         enabled: true,
         speed: 360,
@@ -112,7 +112,7 @@ const baseChartOptions = (theme: Theme): ChartOptions => {
      *************************************** */
     grid: {
       strokeDashArray: 3,
-      borderColor: theme.vars.palette.divider,
+      borderColor: theme.palette.divider,
       padding: { top: 0, right: 0, bottom: 0 },
       xaxis: { lines: { show: false } },
     },
@@ -131,7 +131,7 @@ const baseChartOptions = (theme: Theme): ChartOptions => {
      *************************************** */
     markers: {
       size: 0,
-      strokeColors: theme.vars.palette.background.paper,
+      strokeColors: theme.palette.background.paper,
     },
 
     /** **************************************
@@ -150,7 +150,7 @@ const baseChartOptions = (theme: Theme): ChartOptions => {
       fontSize: '13px',
       horizontalAlign: 'right',
       markers: { shape: 'circle' },
-      labels: { colors: theme.vars.palette.text.primary },
+      labels: { colors: theme.palette.text.primary },
       itemMargin: { horizontal: 8, vertical: 8 },
     },
 
@@ -179,7 +179,7 @@ const baseChartOptions = (theme: Theme): ChartOptions => {
         track: {
           margin: -8,
           strokeWidth: '50%',
-          background: varAlpha(theme.vars.palette.grey['500Channel'], 0.16),
+          background: varAlpha(theme.palette.grey['500Channel'], 0.16),
         },
         dataLabels: { value: { ...LABEL_VALUE }, total: { ...LABEL_TOTAL } },
       },
@@ -190,8 +190,8 @@ const baseChartOptions = (theme: Theme): ChartOptions => {
       radar: {
         polygons: {
           fill: { colors: ['transparent'] },
-          strokeColors: theme.vars.palette.divider,
-          connectorColors: theme.vars.palette.divider,
+          strokeColors: theme.palette.divider,
+          connectorColors: theme.palette.divider,
         },
       },
       /**
@@ -199,8 +199,8 @@ const baseChartOptions = (theme: Theme): ChartOptions => {
        * https://apexcharts.com/docs/options/plotoptions/polararea/
        */
       polarArea: {
-        rings: { strokeColor: theme.vars.palette.divider },
-        spokes: { connectorColors: theme.vars.palette.divider },
+        rings: { strokeColor: theme.palette.divider },
+        spokes: { connectorColors: theme.palette.divider },
       },
       /**
        * heatmap

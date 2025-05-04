@@ -8,14 +8,18 @@ import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 
+import { useRouter } from 'src/routes/hooks';
+
 import { useMember } from 'src/hooks/member';
 
+import Auth from 'src/api/auth';
 import { _myAccount } from 'src/_mock';
 
 // ----------------------------------------------------------------------
 
 export function AccountPopover() {
-  const { member } = useMember();
+  const { member, setMember } = useMember();
+  const router = useRouter();
 
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
 
@@ -27,6 +31,12 @@ export function AccountPopover() {
     setOpenPopover(null);
   }, []);
 
+  const handleLogout = useCallback(async () => {
+    await Auth.logout();
+    setMember(null);
+    router.push("/login");
+  }, [router, setMember]);
+
   return (
     <>
       <IconButton
@@ -36,7 +46,7 @@ export function AccountPopover() {
           width: 40,
           height: 40,
           background: (theme) =>
-            `conic-gradient(${theme.vars.palette.primary.light}, ${theme.vars.palette.warning.light}, ${theme.vars.palette.primary.light})`,
+            `conic-gradient(${theme.palette.primary.light}, ${theme.palette.warning.light}, ${theme.palette.primary.light})`,
         }}
       >
         <Avatar src={_myAccount.photoURL} alt={_myAccount.displayName} sx={{ width: 1, height: 1 }}>
@@ -71,7 +81,7 @@ export function AccountPopover() {
         <Divider sx={{ borderStyle: 'dashed' }} />
 
         <Box sx={{ p: 1 }}>
-          <Button fullWidth color="error" size="medium" variant="text">
+          <Button fullWidth color="error" size="medium" variant="text" onClick={handleLogout}>
             ログアウト
           </Button>
         </Box>

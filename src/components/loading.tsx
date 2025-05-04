@@ -1,5 +1,3 @@
-import { varAlpha } from 'minimal-shared/utils';
-
 import Box from '@mui/material/Box';
 import LinearProgress, { linearProgressClasses } from '@mui/material/LinearProgress';
 
@@ -19,7 +17,7 @@ export function Loading() {
         sx={{
           width: 1,
           maxWidth: 320,
-          bgcolor: (theme) => varAlpha(theme.vars.palette.text.primaryChannel, 0.16),
+          bgcolor: (theme) => theme.palette.grey[400],
           [`& .${linearProgressClasses.bar}`]: { bgcolor: 'text.primary' },
         }}
       />

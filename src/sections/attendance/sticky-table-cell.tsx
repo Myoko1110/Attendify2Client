@@ -7,7 +7,7 @@ export const StickyTableCell = styled(TableCell)(({ theme }) => ({
   width: 150,
   position: 'sticky',
   left: 0,
-  zIndex: 3,
+  zIndex: 5,
   backgroundColor: 'white',
   '&:before': {
     content: '""',

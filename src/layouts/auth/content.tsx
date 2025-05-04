@@ -24,7 +24,7 @@ export function AuthContent({ sx, children, className, ...other }: AuthContentPr
           display: 'flex',
           flexDirection: 'column',
           maxWidth: 'var(--layout-auth-content-width)',
-          bgcolor: theme.vars.palette.background.default,
+          bgcolor: theme.palette.background.default,
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

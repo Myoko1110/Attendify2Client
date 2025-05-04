@@ -1,6 +1,7 @@
 import 'dayjs/locale/ja';
 
 import type { Dayjs } from 'dayjs';
+import type { ButtonProps } from '@mui/material/Button';
 
 import dayjs from 'dayjs';
 import { toast } from 'sonner';
@@ -35,16 +36,16 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { Loading } from 'src/components/loading';
 
 // 出欠状態
-const attendanceStatuses = ['出席', '欠席', '遅刻', '早退', '講習'] as const;
+const attendanceStatuses = ['出席', '欠席', '遅刻', '早退', '講習', '無欠'] as const;
 type AttendanceStatus = (typeof attendanceStatuses)[number];
 
 
 
 export function InputView() {
   const today = dayjs();
-  const todayDateOnly = DateOnly.fromDayjs(today);
 
   const [date, setDate] = useState<Dayjs | null>(today);
+  const dateOnly = DateOnly.fromDayjs(date!);
   const week = DayOfWeek.fromDayjs(date!);
 
   const [part, setPart] = useState(Part.FLUTE);
@@ -58,12 +59,16 @@ export function InputView() {
   
   const grade = useGrade();
 
-  const attendanceStatusColor: Record<string, 'success' | 'error' | 'warning' | 'info' | 'inherit' | 'primary' | 'secondary'> = {
-    "出席": "success",
-    "欠席": "error",
-    "遅刻": "warning",
-    "早退": "warning",
-    "講習": "info",
+  const attendanceStatusColor: Record<AttendanceStatus, ButtonProps> = {
+    "出席": { color: 'success', sx: { fontSize: '1.5rem', py: 1.3, height: 64 } },
+    "欠席": { color: 'error', sx: { fontSize: '1.5rem', py: 1.3, height: 64 } },
+    "遅刻": { color: 'warning', sx: { fontSize: '1.5rem', py: 1.3, height: 64 } },
+    "早退": { color: 'warning', sx: { fontSize: '1.5rem', py: 1.3, height: 64 } },
+    "講習": { color: 'info', sx: { fontSize: '1.5rem', py: 1.3, height: 64 } },
+    "無欠": { sx: {
+      backgroundImage: "linear-gradient(-45deg, black 25%, #87741e 25%, #87741e 50%, black 50%, black 75%, #87741e 75%, #87741e)",
+        fontSize: '1.5rem', py: 1.3, height: 64, backgroundSize: "60px 60px",
+    } },
   }
 
   useEffect(() => {
@@ -114,7 +119,7 @@ export function InputView() {
   const handleSubmit = async () => {
     if (!members) return;
 
-    const attendanceData = members.map((member) => ({
+    const attendanceData = members.filter((m) => m.part === part).map((member) => ({
       member,
       attendance: attendanceMap.get(member.id)!,
       date: date!,
@@ -156,7 +161,7 @@ export function InputView() {
               ))}
             </Tabs>
 
-            {!date || !schedules.find((s => s.dateOnly.equals(todayDateOnly))) && (
+            {!date || !schedules.find((s => s.dateOnly.equals(dateOnly))) && (
               <Alert sx={{ mx: 3, mt: 3 }} severity="warning">{date!.isSame(today, "date") ? "本日": date!.format("MM/DD")} は予定がありません</Alert>
             )}
 
@@ -175,7 +180,7 @@ export function InputView() {
 
                       <Grid container spacing={2}>
                         {genMembers.map((member) => (
-                          <Grid key={member.id} size={{xs:3, sm:6, md:4, lg:3}}>
+                          <Grid key={member.id} size={{xs: 6, sm:6, md:4, lg:3}}>
                             <Card sx={{ p: 2, textAlign: 'center' }}>
                               <Typography variant="h6" gutterBottom>
                                 {member.name}
@@ -200,7 +205,7 @@ export function InputView() {
                                   sx={{ height: 64, fontSize: '1.5rem', fontWeight: 700 }}
                                 >
                                   {attendanceStatuses.map((status) => (
-                                    <MenuItem key={status} value={status} color={attendanceStatusColor[status]!}>
+                                    <MenuItem key={status} value={status}>
                                       {status}
                                     </MenuItem>
                                   ))}
@@ -210,7 +215,6 @@ export function InputView() {
                                   variant="contained"
                                   fullWidth
                                   sx={{ fontSize: '1.5rem', py: 1.3, height: 64 }}
-                                  color={attendanceStatusColor[attendanceMap.get(member.id) || '出席']!}
                                   onClick={() => toggleAttendance(member.id)}
                                   onMouseDown={() => {
                                     timeoutRef.current = setTimeout(() => {
@@ -225,6 +229,7 @@ export function InputView() {
                                   onMouseUp={() => clearTimeout(timeoutRef.current!)}
                                   onMouseLeave={() => clearTimeout(timeoutRef.current!)}
                                   onTouchEnd={() => clearTimeout(timeoutRef.current!)}
+                                  {...attendanceStatusColor[attendanceMap.get(member.id)!] || '出席'}
                                 >
                                   {attendanceMap.get(member.id) || '出席'}
                                 </Button>

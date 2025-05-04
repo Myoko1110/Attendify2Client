@@ -82,12 +82,19 @@ export function UserView() {
         {members !== null ? (
           <>
             <UserTableToolbar
-              numSelected={table.selected.length}
+              selected={table.selected}
+              onSelectAllRows={(checked) =>
+                table.onSelectAllRows(
+                  checked,
+                  members
+                )
+              }
               filterName={filterName}
               onFilterName={(event: React.ChangeEvent<HTMLInputElement>) => {
                 setFilterName(event.target.value);
                 table.onResetPage();
               }}
+              setMembers={setMembers}
             />
 
             <Scrollbar>
@@ -102,7 +109,7 @@ export function UserView() {
                     onSelectAllRows={(checked) =>
                       table.onSelectAllRows(
                         checked,
-                        members.map((user) => user.id)
+                        members
                       )
                     }
                     headLabel={[
@@ -113,6 +120,7 @@ export function UserView() {
                       { id: 'email', label: 'メールアドレス' },
                       { id: 'recture', label: '講習' },
                       { id: '' },
+                      { id: '' },
                     ]}
                   />
                   <TableBody>
@@ -122,8 +130,8 @@ export function UserView() {
                           key={row.id}
                           row={row}
                           setMembers={setMembers}
-                          selected={table.selected.includes(row.id)}
-                          onSelectRow={() => table.onSelectRow(row.id)}
+                          selected={table.selected.includes(row)}
+                          onSelectRow={() => table.onSelectRow(row)}
                         />
                       ))}
 
@@ -154,7 +162,7 @@ export function useTable() {
   const [page, setPage] = useState(0);
   const [orderBy, setOrderBy] = useState<keyof Member>('part');
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<Member[]>([]);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
 
   const onSort = useCallback(
@@ -166,7 +174,7 @@ export function useTable() {
     [order, orderBy]
   );
 
-  const onSelectAllRows = useCallback((checked: boolean, newSelecteds: string[]) => {
+  const onSelectAllRows = useCallback((checked: boolean, newSelecteds: Member[]) => {
     if (checked) {
       setSelected(newSelecteds);
       return;
@@ -175,7 +183,7 @@ export function useTable() {
   }, []);
 
   const onSelectRow = useCallback(
-    (inputValue: string) => {
+    (inputValue: Member) => {
       const newSelected = selected.includes(inputValue)
         ? selected.filter((value) => value !== inputValue)
         : [...selected, inputValue];

@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import type Member from 'src/api/member';
 import type { DateOnly } from 'src/utils/date-only';
 import type Attendances from 'src/utils/attendances';
@@ -5,10 +6,10 @@ import type Attendances from 'src/utils/attendances';
 import { toast } from 'sonner';
 import React, { useRef, useState, useEffect } from 'react';
 
-import { TableCell } from '@mui/material';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
 import { useTheme } from '@mui/material/styles';
+import { Popper, TableCell } from '@mui/material';
 
 import Attendance from 'src/api/attendance';
 import { APIError } from 'src/abc/api-error';
@@ -22,15 +23,16 @@ type Props = {
   onFocus: () => void;
   onTabNext?: () => void;
   onBlur: () => void;
+  tableRef: RefObject<HTMLDivElement | null>;
 };
 
-export function AttendanceCell({ attendance, date, member, setAttendances, isFocused, onFocus, onTabNext, onBlur }: Props) {
+export function AttendanceCell({ attendance, date, member, setAttendances, isFocused, onFocus, onTabNext, onBlur, tableRef }: Props) {
   const [value, setValue] = useState(attendance?.attendance || '');
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const theme = useTheme();
-  const autocompleteOptions = ['出席', '欠席', '遅刻', '早退', '講習'];
+  const autocompleteOptions = ['出席', '欠席', '遅刻', '早退', '講習', '無欠'];
 
   const getAttendanceColor = (a: string | undefined) => {
     if (a === '出席') return 'transparent';
@@ -38,6 +40,7 @@ export function AttendanceCell({ attendance, date, member, setAttendances, isFoc
     if (a === '遅刻') return theme.palette.warning.lighter;
     if (a === '早退') return theme.palette.warning.lighter;
     if (a === '講習') return theme.palette.info.lighter;
+    if (a === '無欠') return theme.palette.error.lighter;
     return 'transparent';
   };
 
@@ -84,11 +87,24 @@ export function AttendanceCell({ attendance, date, member, setAttendances, isFoc
     }
   };
 
+  const onScroll = () => {
+    if (isFocused) {
+      handleUpdate();
+    }
+  }
+
   useEffect(() => {
     if (isFocused) {
       inputRef.current?.focus();
     }
   }, [isFocused]);
+
+  useEffect(() => {
+    tableRef.current?.addEventListener("scroll", onScroll)
+    return () => {
+      tableRef.current?.removeEventListener("scroll", onScroll);
+    }
+  }, [onScroll, tableRef]);
 
   return (
     <TableCell
@@ -113,12 +129,23 @@ export function AttendanceCell({ attendance, date, member, setAttendances, isFoc
         onFocus={onFocus}
         ref={inputRef}
       />
-      {isFocused && (
+      <Popper
+        open={isFocused || false}
+        anchorEl={inputRef.current}
+        placement="bottom-start"
+        disablePortal={false}
+        modifiers={[
+          {
+            name: 'offset',
+            options: {
+              offset: [0, 4], // 少し下にオフセット
+            },
+          },
+        ]}
+      >
         <MenuList
           sx={{
             width: 70,
-            position: 'absolute',
-            zIndex: 1,
             backgroundColor: theme.palette.background.paper,
             borderRadius: 1,
             boxShadow: theme.shadows[3],
@@ -132,7 +159,8 @@ export function AttendanceCell({ attendance, date, member, setAttendances, isFoc
             </MenuItem>
           ))}
         </MenuList>
-      )}
+      </Popper>
+
     </TableCell>
   );
 }

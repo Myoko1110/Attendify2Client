@@ -9,7 +9,6 @@ import MenuList from '@mui/material/MenuList';
 import ButtonBase from '@mui/material/ButtonBase';
 import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
@@ -48,10 +47,6 @@ export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopover
     <Box component="img" alt={alt} src={src} sx={{ width: 24, height: 24, borderRadius: '50%' }} />
   );
 
-  const renderLabel = (plan: string) => (
-    <Label color={plan === 'Free' ? 'default' : 'info'}>{plan}</Label>
-  );
-
   return (
     <>
       <ButtonBase
@@ -66,7 +61,7 @@ export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopover
           borderRadius: 1.5,
           textAlign: 'left',
           justifyContent: 'flex-start',
-          bgcolor: (theme) => varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
+          bgcolor: (theme) => varAlpha(theme.palette.grey['500Channel'], 0.08),
           ...sx,
         }}
         {...other}
@@ -84,7 +79,6 @@ export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopover
           }}
         >
           {workspace?.name}
-          {renderLabel(workspace?.plan)}
         </Box>
 
         <Iconify width={16} icon="carbon:chevron-sort" sx={{ color: 'text.disabled' }} />
@@ -122,7 +116,6 @@ export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopover
                 {option.name}
               </Box>
 
-              {renderLabel(option.plan)}
             </MenuItem>
           ))}
         </MenuList>

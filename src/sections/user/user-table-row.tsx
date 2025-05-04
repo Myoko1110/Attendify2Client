@@ -81,6 +81,8 @@ export function UserTableRow({ row, selected, onSelectRow, setMembers }: UserTab
 
         <TableCell sx={{ border: 0 }}>{row.lectureDay.map((l) => l.jp).join(", ")}</TableCell>
 
+        <TableCell sx={{ border: 0 }}>{row.isCompetitionMember && "コンクールメンバー"}</TableCell>
+
         <TableCell sx={{ border: 0 }} align="right">
           <IconButton sx={{p:.75}} onClick={handleOpenPopover}>
             <Iconify width={16} icon="eva:more-vertical-fill" />

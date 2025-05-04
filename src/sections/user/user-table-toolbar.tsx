@@ -1,3 +1,9 @@
+import type { SetStateAction } from 'react';
+
+import { toast } from 'sonner';
+
+import { Stack } from '@mui/material';
+import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
@@ -5,17 +11,49 @@ import IconButton from '@mui/material/IconButton';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
+import Member from 'src/api/member';
+
 import { Iconify } from 'src/components/iconify';
+
+import { APIError } from '../../abc/api-error';
 
 // ----------------------------------------------------------------------
 
 type UserTableToolbarProps = {
-  numSelected: number;
+  selected: Member[];
+  onSelectAllRows: (checked: boolean) => void;
   filterName: string;
   onFilterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  setMembers: React.Dispatch<SetStateAction<Member[] | null>>;
 };
 
-export function UserTableToolbar({ numSelected, filterName, onFilterName }: UserTableToolbarProps) {
+export function UserTableToolbar({ selected, onSelectAllRows, filterName, onFilterName, setMembers }: UserTableToolbarProps) {
+  const numSelected = selected.length;
+
+  const handleSetCompetition = async (is_competition: boolean) => {
+    try {
+      await Member.setCompetition(selected, is_competition);
+      setMembers((prevMembers) =>
+        prevMembers
+          ? prevMembers.map((member) => {
+            if (selected.includes(member)) {
+              const newMember = member.copy();
+              newMember.isCompetitionMember = is_competition;
+              return newMember;
+            } else {
+              return member;
+            }
+          })
+          : null
+      );
+
+      toast.success('コンクールメンバー情報を更新しました');
+      onSelectAllRows(false);
+    } catch (e) {
+      toast.error(APIError.createToastMessage(e))
+    }
+  }
+
   return (
     <Toolbar
       sx={{
@@ -48,18 +86,16 @@ export function UserTableToolbar({ numSelected, filterName, onFilterName }: User
         />
       )}
 
-      {numSelected > 0 ? (
-        <Tooltip title="Delete">
-          <IconButton>
-            <Iconify icon="solar:trash-bin-trash-bold" />
-          </IconButton>
-        </Tooltip>
-      ) : (
-        <Tooltip title="Filter list">
-          <IconButton>
-            <Iconify icon="ic:round-filter-list" />
-          </IconButton>
-        </Tooltip>
+      {numSelected > 0 && (
+        <Stack sx={{flexDirection: "row", gap: 1}}>
+          <Button onClick={() => handleSetCompetition(true)}>コンクールメンバーにする</Button>
+          <Button onClick={() => handleSetCompetition(false)}>コンクールメンバーから外す</Button>
+          <Tooltip title="Delete">
+            <IconButton>
+              <Iconify icon="solar:trash-bin-trash-bold" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       )}
     </Toolbar>
   );

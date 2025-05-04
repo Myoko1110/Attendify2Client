@@ -19,7 +19,7 @@ export default class Auth {
 
   static async logout(): Promise<boolean> {
     try {
-      const result = await axios.post('/logout');
+      const result = await axios.get('/logout');
       return result.data.result;
     } catch (e) {
       throw APIError.fromError(e);

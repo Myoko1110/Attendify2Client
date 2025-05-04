@@ -49,14 +49,14 @@ export function Searchbar({ sx, ...other }: BoxProps) {
               position: 'absolute',
               alignItems: 'center',
               px: { xs: 3, md: 5 },
-              boxShadow: theme.vars.customShadows.z8,
+              boxShadow: theme.customShadows.z8,
               height: {
                 xs: 'var(--layout-header-mobile-height)',
                 md: 'var(--layout-header-desktop-height)',
               },
               backdropFilter: `blur(6px)`,
               WebkitBackdropFilter: `blur(6px)`,
-              backgroundColor: varAlpha(theme.vars.palette.background.defaultChannel, 0.8),
+              backgroundColor: varAlpha(theme.palette.background.default, 0.8),
               ...sx,
             }}
             {...other}

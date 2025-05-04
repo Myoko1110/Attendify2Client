@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
+import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -20,6 +21,7 @@ import {
   DialogContent,
   DialogActions,
   FormHelperText,
+  FormControlLabel,
   ToggleButtonGroup,
 } from '@mui/material';
 
@@ -44,6 +46,7 @@ const MemberPostSchema = z.object({
   email: z.string().email('メールアドレスの形式が正しくありません').or(z.literal("")),
   generation: z.number().min(1, '必須項目です'),
   lectureDay: z.string().array().transform((days) => days.map(DayOfWeek.valueOf)),
+  isCompetitionMember: z.boolean(),
 });
 
 
@@ -65,6 +68,7 @@ export function MemberEditDialog({ member, open, setOpen, setMembers }: Props) {
   const [generation, setGeneration] = useState(member.generation.toString());
   const [email, setEmail] = useState(member.email || "");
   const [lectureDay, setLectureDay] = useState<string[]>(member.lectureDay.map((w) => w.value));
+  const [isCompetitionMember, setIsCompetitionMember] = useState(member.isCompetitionMember);
 
   const [errorMsg, setErrorMsg] = useState({ ...initialErrorMsg });
 
@@ -76,6 +80,7 @@ export function MemberEditDialog({ member, open, setOpen, setMembers }: Props) {
     setGeneration(member.generation.toString());
     setEmail(member.email || "");
     setLectureDay(member.lectureDay.map((w) => w.value));
+    setIsCompetitionMember(member.isCompetitionMember);
     
     resetErrorMsg();
   };
@@ -100,6 +105,7 @@ export function MemberEditDialog({ member, open, setOpen, setMembers }: Props) {
         email,
         generation: generation ? Number(generation) : 0,
         lectureDay,
+        isCompetitionMember,
       });
 
       handleClose();
@@ -165,9 +171,9 @@ export function MemberEditDialog({ member, open, setOpen, setMembers }: Props) {
             <FormControl error={!!errorMsg.part} fullWidth>
               <InputLabel>パート</InputLabel>
               <Select label="パート" value={part} onChange={(e) => setPart(e.target.value)}>
-                <MenuItem value="fl">Fl</MenuItem>
-                <MenuItem value="cl">Cl</MenuItem>
-                <MenuItem value="wr">WR</MenuItem>
+                {Part.COMMON.map((p) => (
+                  <MenuItem value={p.value} key={p.value}>{p.enShort}</MenuItem>
+                ))}
               </Select>
               <FormHelperText>{errorMsg.part}</FormHelperText>
             </FormControl>
@@ -228,6 +234,12 @@ export function MemberEditDialog({ member, open, setOpen, setMembers }: Props) {
                 ))}
               </ToggleButtonGroup>
             </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <FormControlLabel
+              control={<Checkbox checked={isCompetitionMember} onChange={(e) => setIsCompetitionMember(e.target.checked)} />}
+              label="コンクールメンバー"
+            />
           </Grid>
         </Grid>
       </DialogContent>

@@ -82,33 +82,34 @@ export function ScheduleView() {
         </Typography>
       </Box>
 
-      <Card sx={{flexGrow: 1, flexShrink: 1, flexBasis: 0}}>
-        <FullCalendar
-          plugins={[dayGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          locales={[jaLocale]}
-          locale="ja"
-          timeZone="Asia/Tokyo"
-          headerToolbar={{
-            left: 'prev,title,next',
-            center: '',
-            right: 'today',
-          }}
-          height="100%"
-          dayCellContent={(arg) => arg.date.getDate()}
-          events={schedules.map((schedule) => ({
-            start: schedule.date.toDate(),
-            title: schedule.type.displayName,
-            color: schedule.type.color,
-            textColor: schedule.type.textColor,
-            allDay: true,
-            extendedProps: {
-              type: schedule.type,
-            },
-          }))}
-          dateClick={handleDateClick}
-          eventClick={handleEventClick}
-        />
+      <Card sx={{ height: "fit-content" }}>
+          <FullCalendar
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            locales={[jaLocale]}
+            locale="ja"
+            timeZone="Asia/Tokyo"
+            headerToolbar={{
+              left: 'prev,title,next',
+              center: '',
+              right: 'today',
+            }}
+            dayCellContent={(arg) => arg.date.getDate()}
+            events={schedules.map((schedule) => ({
+              start: schedule.date.toDate(),
+              title: schedule.type.displayName,
+              color: schedule.type.color,
+              textColor: schedule.type.textColor,
+              allDay: true,
+              extendedProps: {
+                type: schedule.type,
+              },
+            }))}
+            dateClick={handleDateClick}
+            eventClick={handleEventClick}
+            contentHeight="auto"
+          />
+
       </Card>
       <ScheduleAddDialog
         open={addDialogOpen}

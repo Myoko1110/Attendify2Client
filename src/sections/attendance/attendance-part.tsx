@@ -4,7 +4,7 @@ import type { Month } from 'src/utils/month';
 import type { DateOnly } from 'src/utils/date-only';
 import type Attendances from 'src/utils/attendances';
 
-import React from 'react';
+import React, { Fragment } from 'react';
 
 import { TableRow, TableCell } from '@mui/material';
 
@@ -21,6 +21,9 @@ type Props = {
   groupedDates: Map<string, DateOnly[]>;
   setAttendances: React.Dispatch<React.SetStateAction<Attendances>>;
   editingCell: EditingCellProps;
+  scheduleDates: DateOnly[];
+  actual: boolean;
+  tableRef: React.RefObject<HTMLDivElement | null>;
 };
 
 type EditingCellProps = {
@@ -45,6 +48,9 @@ export function AttendancePart({
   groupedDates,
   setAttendances,
   editingCell,
+  scheduleDates,
+  actual,
+  tableRef
 }: Props) {
   const renderAttendanceCell = (month: Month, member: Member, index: number) => {
     if (openMonths.has(month.toString())) {
@@ -52,6 +58,7 @@ export function AttendancePart({
 
       return dates.map((date) => (
         <AttendanceCell
+          key={date.toString()}
           attendance={attendances.getByDate(member, date)}
           member={member}
           date={date}
@@ -64,6 +71,7 @@ export function AttendancePart({
             if (nextMember) editingCell.startEditing(date, nextMember);
             else editingCell.stopEditing();
           }}
+          tableRef={tableRef}
         />
       ));
     }
@@ -74,12 +82,12 @@ export function AttendancePart({
     <TableRow key={member.id}>
       <StickyTableCell sx={{ px: 1.5 }}>{member.name}</StickyTableCell>
       {months.map((month) => (
-        <>
+        <Fragment key={month.toString()}>
           <TableCell key={month.toString()} align="center" sx={{ maxWidth: 50 }}>
-            {attendances.filterByMember(member).filterByMonth(month).calcRate()}
+            {attendances.filterByMember(member).filterByDates(scheduleDates).filterByMonth(month).calcRate(actual)}
           </TableCell>
           {openMonths.has(month.toString()) && renderAttendanceCell(month, member, index)}
-        </>
+        </Fragment>
       ))}
     </TableRow>
   ));

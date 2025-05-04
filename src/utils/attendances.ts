@@ -8,18 +8,20 @@ import type { Month } from './month';
 import type { DateOnly } from './date-only';
 
 export default class Attendances extends Array<Attendance> {
-  calcRate(): number | null {
+  calcRate(actual: boolean = false): number | null {
+    const scores = actual ? actualAttendanceScore : attendanceScore;
+
     if (this.length === 0) return null;
     let total = 0;
     const score = this.reduce((acc, cur) => {
-      if (cur.attendance in attendanceScore) {
-        const s = attendanceScore[cur.attendance];
+      if (cur.attendance in scores) {
+        const s = scores[cur.attendance];
         if (!isNaN(s)) {
           acc += s;
           total += 1;
         }
       } else {
-        total += 1;
+        if (actual) total += 1;
       }
       return acc;
     }, 0);
@@ -32,6 +34,15 @@ export default class Attendances extends Array<Attendance> {
     return new Attendances(...this.filter(attendance => attendance.member.part === part));
   }
 
+  filterByGenerations(generation: number[]) {
+    return new Attendances(...this.filter(attendance => generation.includes(attendance.member.generation)));
+  }
+
+  filterByCompetition(competition: boolean | null) {
+    if (competition === null) return this;
+    return new Attendances(...this.filter(attendance => attendance.member.isCompetitionMember === competition));
+  }
+
   filterByMonth(month: Month) {
     return new Attendances(...this.filter((attendance) => attendance.month.equals(month)))
   }
@@ -42,6 +53,10 @@ export default class Attendances extends Array<Attendance> {
 
   filterByMember(member: Member) {
     return new Attendances(...this.filter(attendance => attendance.member.equals(member)));
+  }
+
+  filterByDates(dates: DateOnly[]) {
+    return new Attendances(...this.filter(attendance => dates.some(date => attendance.dateOnly.equals(date))));
   }
 
   getByDate(member: Member, date: DateOnly) {
@@ -65,4 +80,14 @@ const attendanceScore: Record<string, number> = {
   '講習': NaN,
   '遅刻': 50,
   '早退': 50,
+  '無欠': 0,
+}
+
+const actualAttendanceScore: Record<string, number> = {
+  '出席': 100,
+  '欠席': 0,
+  '講習': 0,
+  '遅刻': 50,
+  '早退': 50,
+  '無欠': 0,
 }

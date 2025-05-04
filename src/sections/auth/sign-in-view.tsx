@@ -44,7 +44,9 @@ export function SignInView() {
         try {
           const m = await Auth.login(code, state);
           setMember(m);
+
           router.replace('/');
+
         } catch (e) {
           toast.error(APIError.createToastMessage(e));
           setSearchParams(new URLSearchParams())
@@ -69,7 +71,7 @@ export function SignInView() {
         setAuthURL("");
       }
     })();
-  }, [member, router, searchParams, setMember, setSearchParams]);
+  }, [router, searchParams, setMember, setSearchParams]);
 
   return (
     <>

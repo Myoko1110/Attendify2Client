@@ -3,7 +3,7 @@ import type Schedule from 'src/api/schedule';
 import type { DateOnly } from 'src/utils/date-only';
 import type Attendances from 'src/utils/attendances';
 
-import React, { useState, Fragment } from 'react';
+import React, { useRef, useState, Fragment } from 'react';
 
 import Typography from '@mui/material/Typography';
 import { Table, Paper, Button, TableRow, TableBody, TableCell, TableHead, TableContainer } from '@mui/material';
@@ -22,19 +22,24 @@ type Props = {
   members: Member[];
   setAttendances: React.Dispatch<React.SetStateAction<Attendances>>;
   groupedMembers: Map<Part, Member[]>;
+  actual: boolean;
 };
 
-export function AttendanceTable({ schedules, attendances, members, setAttendances, groupedMembers }: Props) {
+export function AttendanceTable({ schedules, attendances, members, setAttendances, groupedMembers, actual }: Props) {
   const [openParts, setOpenParts] = useState<Set<Part>>(new Set(Part.COMMON));
   const [openMonths, setOpenMonths] = useState<Set<string>>(new Set([Month.now().toString()]));
 
   const editingCell = useEditingCell();
+
+  const tableRef = useRef<HTMLDivElement | null>(null);
 
   const groupedDates = schedules.reduce((map, s) => {
     if (!map.has(s.month.toString())) map.set(s.month.toString(), []);
     map.get(s.month.toString())!.push(s.dateOnly);
     return map;
   }, new Map<string, DateOnly[]>());
+  
+  const dates = schedules.map((s) => s.dateOnly);
 
   const months = Array.from(groupedDates.keys()).map(m => Month.fromString(m));
 
@@ -59,11 +64,11 @@ export function AttendanceTable({ schedules, attendances, members, setAttendance
       ];
 
       if (openMonths.has(month.toString())) {
-        const dates = groupedDates.get(month.toString()) || [];
+        const date = groupedDates.get(month.toString()) || [];
         headers.push(
-          ...dates.map(date => (
-            <TableCell key={date.toString()} sx={{ width: 50, minWidth: 50, maxWidth: 50 }} align="center">
-              {date.date}
+          ...date.map(d => (
+            <TableCell key={d.toString()} sx={{ width: 50, minWidth: 50, maxWidth: 50 }} align="center">
+              {d.date}
             </TableCell>
           ))
         );
@@ -73,17 +78,34 @@ export function AttendanceTable({ schedules, attendances, members, setAttendance
     });
 
   return (
-    <TableContainer component={Paper} sx={{ width: "fit-content", maxWidth: "100%", overflow: "auto" }}>
+    <TableContainer component={Paper} sx={{ width: "fit-content", maxWidth: "100%", height: "100%", overflow: "auto" }} ref={tableRef}>
       <Table stickyHeader size="small" sx={{ tableLayout: "fixed", borderCollapse: "collapse" }}>
-        <TableHead>
+        <TableHead sx={{ zIndex: 5 }}>
           <TableRow>
-            <StickyTableCell sx={{ zIndex: 4, backgroundColor: (theme) => theme.palette.grey[200] }} align="center">
+            <StickyTableCell sx={{ backgroundColor: (theme) => theme.palette.grey[200], zIndex: 6 }} align="center">
               <Typography variant="h6">氏名</Typography>
             </StickyTableCell>
             {renderMonthHeaders()}
           </TableRow>
         </TableHead>
         <TableBody>
+          <TableRow>
+            <StickyTableCell>
+              <Typography textAlign="center" variant="h6">全体</Typography>
+            </StickyTableCell>
+            {months.map(month => (
+              <Fragment key={month.toString()}>
+                <TableCell key={month.toString()} align="center" sx={{ maxWidth: 70 }}>
+                  {attendances.filterByDates(dates).filterByMonth(month).calcRate(actual)}
+                </TableCell>
+                {openMonths.has(month.toString()) && groupedDates.get(month.toString())?.map(date => (
+                  <TableCell key={date.toString()} align="center" sx={{ maxWidth: 50 }}>
+                    {attendances.filterByDate(date)?.calcRate(actual)}
+                  </TableCell>
+                ))}
+              </Fragment>
+            ))}
+          </TableRow>
           {Part.COMMON.map(part => (
             <Fragment key={part.value}>
               <TableRow>
@@ -93,16 +115,16 @@ export function AttendanceTable({ schedules, attendances, members, setAttendance
                   </Button>
                 </StickyTableCell>
                 {months.map(month => (
-                  <>
+                  <Fragment key={month.toString()}>
                     <TableCell key={month.toString()} align="center" sx={{ maxWidth: 70 }}>
-                      {attendances.filterByPart(part).filterByMonth(month).calcRate()}
+                      {attendances.filterByPart(part).filterByDates(dates).filterByMonth(month).calcRate(actual)}
                     </TableCell>
                     {openMonths.has(month.toString()) && groupedDates.get(month.toString())?.map(date => (
                       <TableCell key={date.toString()} align="center" sx={{ maxWidth: 50 }}>
-                        {attendances.filterByPart(part).filterByDate(date)?.calcRate()}
+                        {attendances.filterByPart(part).filterByDate(date)?.calcRate(actual)}
                       </TableCell>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </TableRow>
               {openParts.has(part) && (
@@ -116,6 +138,9 @@ export function AttendanceTable({ schedules, attendances, members, setAttendance
                   groupedDates={groupedDates}
                   setAttendances={setAttendances}
                   editingCell={editingCell}
+                  scheduleDates={dates}
+                  actual={actual}
+                  tableRef={tableRef}
                 />
               )}
             </Fragment>
