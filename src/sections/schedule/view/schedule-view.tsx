@@ -14,6 +14,8 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Typography from '@mui/material/Typography';
 
+import { defaultTimezone } from 'src/utils/format-time';
+
 import Schedule from 'src/api/schedule';
 import { APIError } from 'src/abc/api-error';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -33,10 +35,11 @@ export function ScheduleView() {
   const [editSchedule, setEditSchedule] = useState<Schedule>();
 
   const handleDateClick = (e: DateClickArg) => {
-
     let isExists = false;
+    const date = dayjs(e.date).tz();
+
     schedules.forEach((i) => {
-      if (dayjs(e.date).isSame(i.date)) {
+      if (date.isSame(i.date, "day")) {
         setEditSchedule(i);
         setEditDialogOpen(true);
         isExists = true;
@@ -49,7 +52,9 @@ export function ScheduleView() {
   };
 
   const handleEventClick = (e: EventClickArg) => {
-    const s = schedules.find((i) => i.date.isSame(dayjs(e.event.start)));
+    const eventDate = dayjs(e.event.start).tz();
+
+    const s = schedules.find((i) => i.date.isSame(eventDate, "day"));
     setEditSchedule(s);
     setEditDialogOpen(true);
   };
@@ -88,7 +93,7 @@ export function ScheduleView() {
             initialView="dayGridMonth"
             locales={[jaLocale]}
             locale="ja"
-            timeZone="Asia/Tokyo"
+            timeZone={defaultTimezone}
             headerToolbar={{
               left: 'prev,title,next',
               center: '',
@@ -96,7 +101,7 @@ export function ScheduleView() {
             }}
             dayCellContent={(arg) => arg.date.getDate()}
             events={schedules.map((schedule) => ({
-              start: schedule.date.toDate(),
+              start: schedule.date.format(),
               title: schedule.type.displayName,
               color: schedule.type.color,
               textColor: schedule.type.textColor,

@@ -31,9 +31,11 @@ import Member from 'src/api/member';
 import Schedule from 'src/api/schedule';
 import Attendance from 'src/api/attendance';
 import { APIError } from 'src/abc/api-error';
+import ScheduleType from 'src/abc/schedule-type';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Loading } from 'src/components/loading';
+
 
 // 出欠状態
 const attendanceStatuses = ['出席', '欠席', '遅刻', '早退', '講習', '無欠'] as const;
@@ -42,7 +44,7 @@ type AttendanceStatus = (typeof attendanceStatuses)[number];
 
 
 export function InputView() {
-  const today = dayjs();
+  const today = dayjs.tz();
 
   const [date, setDate] = useState<Dayjs | null>(today);
   const dateOnly = DateOnly.fromDayjs(date!);
@@ -74,6 +76,9 @@ export function InputView() {
   useEffect(() => {
     (async () => {
       try {
+        const s = await Schedule.get();
+        setSchedules(s);
+
         const m = await Member.get();
         setMembers(m.sort((a, b) => {
           if (a.generation > b.generation) return 1;
@@ -83,19 +88,17 @@ export function InputView() {
           return 0;
         }));
 
-        const initialMap = new Map<string, AttendanceStatus>();
-        m.forEach((member) => {
-          initialMap.set(member.id, member.lectureDay.find((l) => l.equals(week)) ? '講習' : '出席');
-        });
-        setAttendanceMap(initialMap);
+        handleInitAttendance(s, m);
 
-        const s = await Schedule.get();
-        setSchedules(s);
       } catch (e) {
         toast.error(APIError.createToastMessage(e));
       }
     })();
-  }, [week]);
+  }, []);
+
+  useEffect(() => {
+    handleInitAttendance()
+  }, [date]);
 
   const groupedMembers = (members || []).reduce((map, member) => {
     if (!map.has(member.part)) map.set(member.part, new Map<number, Member[]>());
@@ -131,6 +134,24 @@ export function InputView() {
     } catch (e) {
       toast.error(APIError.createToastMessage(e));
     }
+  }
+
+  const handleInitAttendance = (s?: Schedule[], m?: Member[]) => {
+    const sche = s || schedules;
+    if (!sche) return;
+
+    const mem = m || members;
+    if (!mem) return;
+
+    const initialMap = new Map<string, AttendanceStatus>();
+    const sch = sche.find((sc) => sc.dateOnly.equals(dateOnly));
+    mem.forEach((member) => {
+      initialMap.set(
+        member.id,
+        sch?.type === ScheduleType.WEEKDAY && member.lectureDay.find((l) => l.equals(week)) ? '講習' : '出席'
+      );
+    });
+    setAttendanceMap(initialMap);
   }
 
   return (
@@ -229,7 +250,7 @@ export function InputView() {
                                   onMouseUp={() => clearTimeout(timeoutRef.current!)}
                                   onMouseLeave={() => clearTimeout(timeoutRef.current!)}
                                   onTouchEnd={() => clearTimeout(timeoutRef.current!)}
-                                  {...attendanceStatusColor[attendanceMap.get(member.id)!] || '出席'}
+                                  {...attendanceStatusColor[attendanceMap.get(member.id) || '出席']}
                                 >
                                   {attendanceMap.get(member.id) || '出席'}
                                 </Button>
@@ -252,7 +273,7 @@ export function InputView() {
               >
                 <DatePicker
                   label="日付"
-                  slotProps={{ calendarHeader: { format: 'YYYY年MM月' }, actionBar: { actions: ["today"] }}}
+                  slotProps={{ calendarHeader: { format: 'YYYY年M月' }, actionBar: { actions: ["today"] }, toolbar: { toolbarFormat: "M月D日" } }}
                   views={["year", "month", "day"]}
                   value={date}
                   onChange={setDate}

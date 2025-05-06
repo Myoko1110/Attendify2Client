@@ -78,7 +78,15 @@ export function AttendancePart({
     return null;
   };
 
-  return members.map((member, index) => (
+  const sortedMembers = members.sort((a, b) => {
+    if (a.generation > b.generation) return 1;
+    if (a.generation < b.generation) return -1;
+    if (a.nameKana > b.nameKana) return 1;
+    if (a.nameKana < b.nameKana) return -1;
+    return 0;
+  });
+
+  return sortedMembers.map((member, index) => (
     <TableRow key={member.id}>
       <StickyTableCell sx={{ px: 1.5 }}>{member.name}</StickyTableCell>
       {months.map((month) => (

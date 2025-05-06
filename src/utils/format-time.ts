@@ -31,6 +31,8 @@ import arraySupport from 'dayjs/plugin/arraySupport';
  *
  */
 
+export const defaultTimezone = import.meta.env.VITE_TIMEZONE;
+
 dayjs.extend(duration);
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -38,7 +40,7 @@ dayjs.extend(relativeTime);
 dayjs.extend(arraySupport)
 
 dayjs.locale('ja');
-dayjs.tz.setDefault("Asia/Tokyo");
+dayjs.tz.setDefault(defaultTimezone);
 
 // ----------------------------------------------------------------------
 
@@ -115,7 +117,8 @@ export function parseDateTime(date: string) {
 }
 
 export function parseDate(date: string) {
-  const parsedDate = dayjs.utc(date, undefined, true);
+  const parsedDate = dayjs.tz(date);
+
   if (!parsedDate.isValid()) {
     throw new Error(`Invalid date format: ${date}`);
   }
@@ -133,5 +136,5 @@ export function fDateBackend(date: Dayjs) {
   if (!date.isValid()) {
     throw Error('Invalid date value');
   }
-  return date.utc().format(formatPatterns.backend.date);
+  return date.tz().format(formatPatterns.backend.date);
 }
