@@ -42,7 +42,7 @@ const MemberPostSchema = z.object({
   name: z.string().nonempty('必須項目です'),
   nameKana: z.string().nonempty('必須項目です'),
   part: z.string().nonempty('必須項目です').transform(Part.valueOf),
-  role: z.enum(['member', 'exec', 'part', 'officer']).transform(Role.valueOf),
+  role: z.string().transform(Role.valueOf),
   email: z.string().email('メールアドレスの形式が正しくありません').or(z.literal("")),
   generation: z.number().min(1, '必須項目です'),
   lectureDay: z.string().array().transform((days) => days.map(DayOfWeek.valueOf)),
@@ -171,7 +171,7 @@ export function MemberEditDialog({ member, open, setOpen, setMembers }: Props) {
             <FormControl error={!!errorMsg.part} fullWidth>
               <InputLabel>パート</InputLabel>
               <Select label="パート" value={part} onChange={(e) => setPart(e.target.value)}>
-                {Part.COMMON.map((p) => (
+                {Part.SELECTS.map((p) => (
                   <MenuItem value={p.value} key={p.value}>{p.enShort}</MenuItem>
                 ))}
               </Select>
@@ -182,10 +182,9 @@ export function MemberEditDialog({ member, open, setOpen, setMembers }: Props) {
             <FormControl error={!!errorMsg.role} fullWidth>
               <InputLabel>役職</InputLabel>
               <Select label="役職" value={role} onChange={(e) => setRole(e.target.value)}>
-                <MenuItem value="member">部員</MenuItem>
-                <MenuItem value="exec">執行部</MenuItem>
-                <MenuItem value="part">パートリーダー</MenuItem>
-                <MenuItem value="officer">出欠係</MenuItem>
+                {Role.COMMON.map((r) => (
+                  <MenuItem value={r.value} key={r.value}>{r.displayName}</MenuItem>
+                ))}
               </Select>
               <FormHelperText>{errorMsg.role}</FormHelperText>
             </FormControl>

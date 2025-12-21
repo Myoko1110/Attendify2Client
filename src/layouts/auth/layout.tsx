@@ -78,9 +78,9 @@ export function AuthLayout({
       sx={[
         (theme) => ({
           alignItems: 'center',
+          justifyContent: 'center',
           p: theme.spacing(3, 2, 10, 2),
           [theme.breakpoints.up(layoutQuery)]: {
-            justifyContent: 'center',
             p: theme.spacing(10, 0, 10, 0),
           },
         }),

@@ -13,7 +13,7 @@ import { AuthLoader } from 'src/components/auth-loader';
 
 // ----------------------------------------------------------------------
 
-export const AttendancePage = lazy(() => import('src/pages/attendance'));
+export const AttendanceNewPage = lazy(() => import('src/pages/attendance-n'));
 export const UserPage = lazy(() => import('src/pages/user'));
 export const InputPage = lazy(() => import('src/pages/input'));
 export const SchedulePage = lazy(() => import('src/pages/schedule'));
@@ -52,7 +52,7 @@ export const routesSection: RouteObject[] = [
       </AuthLoader>
     ),
     children: [
-      { index: true, element: <AttendancePage /> },
+      { index: true, element: <AttendanceNewPage /> },
       { path: 'member', element: <UserPage /> },
       { path: 'schedule', element: <SchedulePage /> },
       { path: 'input', element: <InputPage /> },

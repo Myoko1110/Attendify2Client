@@ -36,6 +36,8 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Loading } from 'src/components/loading';
 
+import { useMember } from '../../../hooks/member';
+
 
 // 出欠状態
 const attendanceStatuses = ['出席', '欠席', '遅刻', '早退', '講習', '無欠'] as const;
@@ -44,13 +46,16 @@ type AttendanceStatus = (typeof attendanceStatuses)[number];
 
 
 export function InputView() {
+  const selfPart = useMember().member?.part;
+  const initPart = selfPart !== undefined && selfPart !== Part.ADVISOR ? selfPart : Part.FLUTE;
+
   const today = dayjs.tz();
 
   const [date, setDate] = useState<Dayjs | null>(today);
   const dateOnly = DateOnly.fromDayjs(date!);
   const week = DayOfWeek.fromDayjs(date!);
 
-  const [part, setPart] = useState(Part.FLUTE);
+  const [part, setPart] = useState(initPart);
   const [members, setMembers] = useState<Member[] | null>(null);
   const [schedules, setSchedules] = useState<Schedule[] | null>(null);
 
@@ -100,7 +105,23 @@ export function InputView() {
     handleInitAttendance()
   }, [date]);
 
-  const groupedMembers = (members || []).reduce((map, member) => {
+  const targetMembers = (() => {
+    if (!members || !schedules) return [];
+
+    const schedule = schedules.find((s => s.dateOnly.equals(dateOnly)));
+
+    if (!schedule) return members || [];
+    if (schedule.target === null) return members || [];
+
+    return (members || []).filter((m) => {
+      if (schedule.target!.includes("c:Y") && m.isCompetitionMember) return true;
+      if (schedule.target!.includes("c:N") && !m.isCompetitionMember) return true;
+      if (schedule.target!.includes(`g:${m.generation}`)) return true;
+      return false;
+    });
+  })();
+
+  const groupedMembers = targetMembers.reduce((map, member) => {
     if (!map.has(member.part)) map.set(member.part, new Map<number, Member[]>());
     const generationMap = map.get(member.part)!;
     if (!generationMap.has(member.generation)) generationMap.set(member.generation, []);
@@ -122,7 +143,7 @@ export function InputView() {
   const handleSubmit = async () => {
     if (!members) return;
 
-    const attendanceData = members.filter((m) => m.part === part).map((member) => ({
+    const attendanceData = targetMembers.filter((m) => m.part === part).map((member) => ({
       member,
       attendance: attendanceMap.get(member.id)!,
       date: date!,
@@ -154,6 +175,7 @@ export function InputView() {
     setAttendanceMap(initialMap);
   }
 
+
   return (
     <DashboardContent>
       <Box
@@ -169,6 +191,7 @@ export function InputView() {
       </Box>
 
       <Card sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+
         {members !== null && schedules != null ? (
           <>
             <Tabs

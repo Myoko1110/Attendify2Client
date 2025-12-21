@@ -13,7 +13,6 @@ import { useRouter } from 'src/routes/hooks';
 import { useMember } from 'src/hooks/member';
 
 import Auth from 'src/api/auth';
-import { _myAccount } from 'src/_mock';
 
 // ----------------------------------------------------------------------
 
@@ -49,9 +48,7 @@ export function AccountPopover() {
             `conic-gradient(${theme.palette.primary.light}, ${theme.palette.warning.light}, ${theme.palette.primary.light})`,
         }}
       >
-        <Avatar src={_myAccount.photoURL} alt={_myAccount.displayName} sx={{ width: 1, height: 1 }}>
-          {_myAccount.displayName.charAt(0).toUpperCase()}
-        </Avatar>
+        <Avatar alt={member?.name} sx={{ width: 1, height: 1 }} />
       </IconButton>
 
       <Popover

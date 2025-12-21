@@ -3,6 +3,8 @@ import type { Dayjs } from 'dayjs';
 import { toast } from 'sonner';
 import { useState } from 'react';
 
+import Divider from '@mui/material/Divider';
+import Typography from '@mui/material/Typography';
 import {
   Stack,
   Button,
@@ -11,12 +13,13 @@ import {
   FormControl,
   ToggleButton,
   DialogActions,
-  FormHelperText,
-  ToggleButtonGroup,
+  FormHelperText, ToggleButtonGroup,
 } from '@mui/material';
 
 import Schedule from 'src/api/schedule';
 import ScheduleType from 'src/abc/schedule-type';
+
+import { useGrade } from '../../hooks/grade';
 
 type Props = {
   open: boolean;
@@ -26,13 +29,19 @@ type Props = {
 }
 
 export function ScheduleAddDialog({open, setOpen, date, setSchedules}: Props) {
+  const grade = useGrade();
+
   const [scheduleType, setScheduleType] = useState<string | null>(null);
+  const [targetGrade, setTargetGrade] = useState<string[]>([]);
+  const [targetCompetition, setTargetCompetition] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
   const handleClose = () => {
     setOpen(false);
     setError(false);
     setScheduleType(null);
+    setTargetGrade([]);
+    setTargetCompetition(null);
   }
 
   const handleSubmit = async () => {
@@ -46,10 +55,14 @@ export function ScheduleAddDialog({open, setOpen, date, setSchedules}: Props) {
 
     handleClose();
 
+    const trg: string[] = [];
+    if (targetGrade) trg.push(...targetGrade);
+    if (targetCompetition) trg.push(targetCompetition);
+
     const type = ScheduleType.valueOf(scheduleType);
-    await Schedule.add(date, type)
+    await Schedule.add(date, type, trg.length === 0 ? null : trg);
     toast.success("追加しました")
-    setSchedules((prev) => ([...prev, new Schedule(date, type)]));
+    setSchedules((prev) => ([...prev, new Schedule(date, type, trg.length === 0 ? null : trg)]));
   }
 
   return (
@@ -59,10 +72,10 @@ export function ScheduleAddDialog({open, setOpen, date, setSchedules}: Props) {
       maxWidth="xs"
       fullWidth
     >
-      <DialogTitle sx={{ padding: '24px' }}>
+      <DialogTitle sx={{ padding: '24px', mb: 1 }}>
         予定を追加: {date && date.month() + 1}月{date?.date()}日
       </DialogTitle>
-        <Stack direction="column" gap="24px" px={2}>
+        <Stack direction="column" gap={1} px={2}>
           <FormControl>
             <ToggleButtonGroup
               value={scheduleType}
@@ -140,6 +153,38 @@ export function ScheduleAddDialog({open, setOpen, date, setSchedules}: Props) {
             </ToggleButtonGroup>
             <FormHelperText error>{error && "必須項目です"}</FormHelperText>
           </FormControl>
+
+
+          <Divider sx={{ mt: 3 }}>
+            <Typography variant="button">限定</Typography>
+          </Divider>
+
+            <ToggleButtonGroup
+              fullWidth
+              onChange={(_, val) => setTargetGrade(val)}
+              value={targetGrade}
+            >
+              {grade?.map((g) => (
+                <ToggleButton
+                  key={g.generation}
+                  value={`g:${g.generation}`}
+                >
+                  {g.displayName}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
+              <Typography variant="subtitle2">コンクールメンバー</Typography>
+              <ToggleButtonGroup
+                sx={{ flex: 1 }}
+                onChange={(_, val) => setTargetCompetition(val)}
+                value={targetCompetition}
+                exclusive
+              >
+                <ToggleButton value="c:Y" fullWidth>のみ</ToggleButton>
+                <ToggleButton value="c:N" fullWidth>以外</ToggleButton>
+              </ToggleButtonGroup>
+            </Stack>
         </Stack>
       <DialogActions>
         <Button variant="outlined" color="inherit" onClick={handleClose}>

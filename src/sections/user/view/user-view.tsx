@@ -78,7 +78,14 @@ export function UserView() {
         </Button>
       </Box>
 
-      <Card sx={{ flex: 1 }}>
+      <Card sx={{
+        flex: 1,
+        ...(members === null && {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }),
+      }}>
         {members !== null ? (
           <>
             <UserTableToolbar

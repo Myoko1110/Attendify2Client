@@ -3,17 +3,23 @@ export default class Role {
   static readonly PART_LEADER = new Role('part', "パートリーダー", 2);
   static readonly ATTENDANCE_OFFICER = new Role('officer', "出欠係");
   static readonly MEMBER = new Role("member", "-");
-  static readonly ADVISOR = new Role("advisor", "顧問", 0);
-  static readonly UNKNOWN = new Role('unknown', "不明");
+  static readonly UNKNOWN = new Role('unk', "不明");
 
   static readonly ALL = [
     Role.EXECUTIVE,
     Role.PART_LEADER,
     Role.ATTENDANCE_OFFICER,
     Role.MEMBER,
-    Role.ADVISOR,
     Role.UNKNOWN,
   ];
+
+  static readonly COMMON = [
+    Role.EXECUTIVE,
+    Role.PART_LEADER,
+    Role.ATTENDANCE_OFFICER,
+    Role.MEMBER,
+
+  ]
 
 
   static valueOf(value: string): Role {

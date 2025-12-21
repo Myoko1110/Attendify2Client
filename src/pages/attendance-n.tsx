@@ -1,6 +1,6 @@
 import { CONFIG } from 'src/config-global';
 
-import { AttendanceView } from 'src/sections/attendance/view';
+import { AttendanceView } from 'src/sections/attendance-n/view';
 
 // ----------------------------------------------------------------------
 

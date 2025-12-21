@@ -1,6 +1,6 @@
 import type { Dayjs } from 'dayjs';
-import type { EventClickArg } from '@fullcalendar/core';
 import type { DateClickArg } from '@fullcalendar/interaction';
+import type { EventClickArg, EventContentArg } from '@fullcalendar/core';
 
 import dayjs from 'dayjs';
 import { toast } from 'sonner';
@@ -14,6 +14,8 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Typography from '@mui/material/Typography';
 
+import { useGrade } from 'src/hooks/grade';
+
 import { defaultTimezone } from 'src/utils/format-time';
 
 import Schedule from 'src/api/schedule';
@@ -26,6 +28,8 @@ import { ScheduleEditDialog } from '../schedule-edit-dialog';
 // ----------------------------------------------------------------------
 
 export function ScheduleView() {
+  const grade = useGrade();
+  
   const [schedules, setSchedules] = useState<Schedule[]>([]);
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -33,6 +37,8 @@ export function ScheduleView() {
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editSchedule, setEditSchedule] = useState<Schedule>();
+
+  const [events, setEvents] = useState({});
 
   const handleDateClick = (e: DateClickArg) => {
     let isExists = false;
@@ -69,9 +75,52 @@ export function ScheduleView() {
 
   };
 
+  const renderEventContent = (eventInfo: EventContentArg) => (
+      <Box sx={(theme) => ({
+        px: 1,
+        py: 0.5,
+        [theme.breakpoints.down('md')]: {
+          px: 0.5,
+          py: 0.25,
+        },
+      })}>
+        <Box sx={(theme) => ({
+          [theme.breakpoints.down('md')]: {
+            fontSize: '0.8em',
+          },
+        })}>{eventInfo.event.title}</Box>
+        <Box sx={(theme) => ({
+          fontSize: '0.75em',
+          color: '#666',
+          textOverflow: "ellipsis",
+          overflow: "hidden",
+          whiteSpace: "nowrap",
+          [theme.breakpoints.down('md')]: {
+            fontSize: '0.55em',
+          },
+        })}>
+          {eventInfo.event.extendedProps.schedule.getDisplayTarget(grade)}
+        </Box>
+      </Box>
+    );
+
   useEffect(() => {
     reload();
   }, []);
+
+  useEffect(() => {
+    setEvents(schedules.map((schedule) => ({
+      start: schedule.date.format(),
+      title: schedule.type.displayName,
+      color: schedule.type.color,
+      textColor: schedule.type.textColor,
+      allDay: true,
+      extendedProps: {
+        type: schedule.type,
+        schedule,
+      },
+    })))
+  }, [schedules]);
 
   return (
     <DashboardContent>
@@ -100,19 +149,11 @@ export function ScheduleView() {
               right: 'today',
             }}
             dayCellContent={(arg) => arg.date.getDate()}
-            events={schedules.map((schedule) => ({
-              start: schedule.date.format(),
-              title: schedule.type.displayName,
-              color: schedule.type.color,
-              textColor: schedule.type.textColor,
-              allDay: true,
-              extendedProps: {
-                type: schedule.type,
-              },
-            }))}
+            events={events}
             dateClick={handleDateClick}
             eventClick={handleEventClick}
             contentHeight="auto"
+            eventContent={renderEventContent}
           />
 
       </Card>

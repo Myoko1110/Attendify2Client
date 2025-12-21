@@ -21,6 +21,8 @@
 /* toaster */
 @import './components/toaster/styles.css';
 
+@import "tailwindcss";
+
 /** **************************************
 * Baseline
 *************************************** */
@@ -217,7 +219,8 @@ input[type='number']::-webkit-inner-spin-button {
 }
 
 .fc-toolbar-title {
-  font-family: 'Noto Sans JP', sans-serif;
+  font-family: 'Lato', 'Noto Sans JP', sans-serif;
+  font-weight: 600;
 }
 
 .fc-event-title {

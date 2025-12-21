@@ -12,7 +12,7 @@ import { parseDate, fDateBackend, parseDateTime } from 'src/utils/format-time';
 
 import { APIError } from 'src/abc/api-error';
 
-import Member, { MemberSchema } from './member';
+import Member from './member';
 
 // ----------------------------------------------------------------------
 
@@ -23,7 +23,7 @@ export default class Attendance {
     public attendance: string,
     public createdAt: Dayjs,
     public updatedAt: Dayjs,
-    public member: Member,
+    public memberId: string,
   ) {}
 
   static fromSchema(data: AttendanceResult) {
@@ -33,19 +33,33 @@ export default class Attendance {
       data.attendance,
       data.createdAt,
       data.updatedAt,
-      Member.fromSchema(data.member),
+      data.memberId,
     );
   }
 
-  static async get(part?: Part, generation?: number, date?: Dayjs): Promise<Attendances> {
+  static async get({
+    part,
+    generation,
+    date,
+    month,
+  }: {
+    part?: Part;
+    generation?: number;
+    date?: Dayjs;
+    month?: Month;
+  } = {}): Promise<Attendances> {
+
     const params = new URLSearchParams();
     if (part) params.append('part', part.value);
     if (generation) params.append('generation', generation.toString());
     if (date) params.append('date', date.format('YYYY-MM-DD'));
+    if (month) params.append("month", month.toString())
 
     try {
       const result = await axios.get(`/attendances`, { params });
-      return new Attendances(...AttendanceArraySchema.parse(result.data).map((data) => Attendance.fromSchema(data)));
+      return new Attendances(
+        ...AttendanceArraySchema.parse(result.data).map((data) => Attendance.fromSchema(data)),
+      );
     } catch (e) {
       console.log(e);
       throw APIError.fromError(e);
@@ -109,9 +123,9 @@ export const AttendanceSchema = z.object({
   id: z.string().uuid(),
   date: z.string().transform((date) => parseDate(date)),
   attendance: z.string(),
-  createdAt: z.string().transform((date) => parseDateTime(date)),
-  updatedAt: z.string().transform((date) => parseDateTime(date)),
-  member: MemberSchema,
+  createdAt: z.string().datetime().transform((date) => parseDateTime(date)),
+  updatedAt: z.string().datetime().transform((date) => parseDateTime(date)),
+  memberId: z.string().uuid(),
 });
 export const AttendanceArraySchema = z.array(AttendanceSchema);
 export type AttendanceResult = z.infer<typeof AttendanceSchema>;

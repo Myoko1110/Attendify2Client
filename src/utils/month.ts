@@ -1,3 +1,5 @@
+import dayjs, {Dayjs} from 'dayjs';
+
 export class Month {
   public year: number;
   public month: number; // 0-11
@@ -28,12 +30,16 @@ export class Month {
   }
 
   static now(): Month {
-    const now = new Date();
-    return new Month(now.getFullYear(), now.getMonth());
+    const now = dayjs.tz();
+    return new Month(now.year(), now.month());
   }
 
   static fromString(value: string): Month {
     const [year, month] = value.split('-').map(Number);
     return new Month(year, month - 1);
+  }
+
+  static fromDayjs(date: Dayjs): Month {
+    return new Month(date.year(), date.month());
   }
 }
