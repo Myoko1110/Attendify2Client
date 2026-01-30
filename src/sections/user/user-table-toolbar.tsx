@@ -1,6 +1,7 @@
 import type { SetStateAction } from 'react';
 
 import { toast } from 'sonner';
+import { memo, useState } from 'react';
 
 import { Stack } from '@mui/material';
 import Button from '@mui/material/Button';
@@ -16,6 +17,7 @@ import Member from 'src/api/member';
 import { Iconify } from 'src/components/iconify';
 
 import { APIError } from '../../abc/api-error';
+import { BulkStatusPeriodAddDialog } from './bulk-status-period-add-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -27,8 +29,9 @@ type UserTableToolbarProps = {
   setMembers: React.Dispatch<SetStateAction<Member[] | null>>;
 };
 
-export function UserTableToolbar({ selected, onSelectAllRows, filterName, onFilterName, setMembers }: UserTableToolbarProps) {
+export const UserTableToolbar = memo(function UserTableToolbar({ selected, onSelectAllRows, filterName, onFilterName, setMembers }: UserTableToolbarProps) {
   const numSelected = selected.length;
+  const [openBulkStatusPeriod, setOpenBulkStatusPeriod] = useState(false);
 
   const handleSetCompetition = async (is_competition: boolean) => {
     try {
@@ -48,6 +51,30 @@ export function UserTableToolbar({ selected, onSelectAllRows, filterName, onFilt
       );
 
       toast.success('コンクールメンバー情報を更新しました');
+      onSelectAllRows(false);
+    } catch (e) {
+      toast.error(APIError.createToastMessage(e))
+    }
+  }
+
+  const handleSetRetired = async (is_retired: boolean) => {
+    try {
+      await Member.setRetired(selected, is_retired);
+      setMembers((prevMembers) =>
+        prevMembers
+          ? prevMembers.map((member) => {
+            if (selected.includes(member)) {
+              const newMember = member.copy();
+              newMember.isTemporarilyRetired = is_retired;
+              return newMember;
+            } else {
+              return member;
+            }
+          })
+          : null
+      );
+
+      toast.success('仮引退情報を更新しました');
       onSelectAllRows(false);
     } catch (e) {
       toast.error(APIError.createToastMessage(e))
@@ -88,8 +115,7 @@ export function UserTableToolbar({ selected, onSelectAllRows, filterName, onFilt
 
       {numSelected > 0 && (
         <Stack sx={{flexDirection: "row", gap: 1}}>
-          <Button onClick={() => handleSetCompetition(true)}>コンクールメンバーにする</Button>
-          <Button onClick={() => handleSetCompetition(false)}>コンクールメンバーから外す</Button>
+          <Button onClick={() => setOpenBulkStatusPeriod(true)}>ステータス追加</Button>
           <Tooltip title="Delete">
             <IconButton>
               <Iconify icon="solar:trash-bin-trash-bold" />
@@ -97,6 +123,32 @@ export function UserTableToolbar({ selected, onSelectAllRows, filterName, onFilt
           </Tooltip>
         </Stack>
       )}
+
+      {openBulkStatusPeriod && (
+        <BulkStatusPeriodAddDialog 
+          open={openBulkStatusPeriod} 
+          setOpen={setOpenBulkStatusPeriod} 
+          members={selected} 
+          onSuccess={(results) => {
+            onSelectAllRows(false);
+            // Update only the members that had successful additions in-memory
+            setMembers((prevMembers) =>
+              prevMembers
+                ? prevMembers.map((member) => {
+                    const hit = results.find((r) => r.memberId === member.id);
+                    if (hit) {
+                      const copy = member.copy();
+                      copy.membershipStatusPeriods = copy.membershipStatusPeriods ? [...copy.membershipStatusPeriods] : [];
+                      copy.membershipStatusPeriods.push(hit);
+                      return copy;
+                    }
+                    return member;
+                  })
+                : null,
+            );
+          }}
+        />
+      )}
     </Toolbar>
   );
-}
+});

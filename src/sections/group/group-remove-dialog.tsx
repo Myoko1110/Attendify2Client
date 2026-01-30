@@ -1,4 +1,5 @@
-import type Member from 'src/api/member';
+
+import type Group from 'src/api/group';
 
 import { toast } from 'sonner';
 
@@ -13,13 +14,13 @@ import {
 import { APIError } from 'src/abc/api-error';
 
 type Props = {
-  member: Member;
+  group: Group;
   open: boolean;
   setOpen: (open: boolean) => void;
-  setGroups: React.Dispatch<React.SetStateAction<Member[] | null>>;
+  setGroups: React.Dispatch<React.SetStateAction<Group[] | null>>;
 };
 
-export function MemberRemoveDialog({ member, open, setOpen, setGroups }: Props) {
+export function GroupRemoveDialog({ group, open, setOpen, setGroups }: Props) {
   const handleClose = () => {
     setOpen(false);
   };
@@ -28,9 +29,9 @@ export function MemberRemoveDialog({ member, open, setOpen, setGroups }: Props) 
     handleClose();
 
     try {
-      await member.remove();
+      await group.remove();
       setGroups((prev) => {
-        const index = prev!.indexOf(member);
+        const index = prev!.indexOf(group);
         const newMembers = [...prev!];
         newMembers.splice(index, 1);
         return newMembers;
@@ -43,8 +44,8 @@ export function MemberRemoveDialog({ member, open, setOpen, setGroups }: Props) 
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle>部員を削除</DialogTitle>
-      <Typography variant="body2" color="textSecondary" px="24px">&#39;{member.name}&#39; を本当に削除しますか？</Typography>
+      <DialogTitle>グループを削除</DialogTitle>
+      <Typography variant="body2" color="textSecondary" px="24px">グループ &#39;{group.displayName}&#39; を本当に削除しますか？</Typography>
       <DialogActions>
         <Button variant="outlined" color="inherit" onClick={handleClose}>
           キャンセル

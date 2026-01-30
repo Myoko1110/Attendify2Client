@@ -119,10 +119,10 @@ const MuiTableCell: Components<Theme>['MuiTableCell'] = {
       fontWeight: theme.typography.fontWeightSemiBold,
       backgroundColor: theme.palette.background.neutral,
     }),
-    root: ({ theme }) => ({
+    root: {
       padding: 4,
-      border: `1px ${theme.palette.grey["300"]} solid`,
-    }),
+      border: `0`,
+    },
   },
 };
 

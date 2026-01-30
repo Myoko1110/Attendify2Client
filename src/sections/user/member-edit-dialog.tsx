@@ -7,9 +7,7 @@ import { useState, useEffect } from 'react';
 import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
-import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 import {
   Dialog,
@@ -17,12 +15,9 @@ import {
   InputLabel,
   DialogTitle,
   FormControl,
-  ToggleButton,
   DialogContent,
   DialogActions,
   FormHelperText,
-  FormControlLabel,
-  ToggleButtonGroup,
 } from '@mui/material';
 
 import { DayOfWeek } from 'src/utils/day-of-week';
@@ -35,7 +30,7 @@ type Props = {
   member: Member,
   open: boolean;
   setOpen: (open: boolean) => void;
-  setMembers: React.Dispatch<React.SetStateAction<Member[] | null>>;
+  setGroups: React.Dispatch<React.SetStateAction<Member[] | null>>;
 };
 
 const MemberPostSchema = z.object({
@@ -47,6 +42,7 @@ const MemberPostSchema = z.object({
   generation: z.number().min(1, '必須項目です'),
   lectureDay: z.string().array().transform((days) => days.map(DayOfWeek.valueOf)),
   isCompetitionMember: z.boolean(),
+  isTemporarilyRetired: z.boolean(),
 });
 
 
@@ -60,7 +56,7 @@ const initialErrorMsg = {
 }
 
 
-export function MemberEditDialog({ member, open, setOpen, setMembers }: Props) {
+export function MemberEditDialog({ member, open, setOpen, setGroups }: Props) {
   const [name, setName] = useState(member.name);
   const [nameKana, setNameKana] = useState(member.nameKana);
   const [part, setPart] = useState(member.part.value);
@@ -69,6 +65,7 @@ export function MemberEditDialog({ member, open, setOpen, setMembers }: Props) {
   const [email, setEmail] = useState(member.email || "");
   const [lectureDay, setLectureDay] = useState<string[]>(member.lectureDay.map((w) => w.value));
   const [isCompetitionMember, setIsCompetitionMember] = useState(member.isCompetitionMember);
+  const [isTemporarilyRetired, setIsTemporarilyRetired] = useState(member.isTemporarilyRetired);
 
   const [errorMsg, setErrorMsg] = useState({ ...initialErrorMsg });
 
@@ -106,12 +103,13 @@ export function MemberEditDialog({ member, open, setOpen, setMembers }: Props) {
         generation: generation ? Number(generation) : 0,
         lectureDay,
         isCompetitionMember,
+        isTemporarilyRetired,
       });
 
       handleClose();
 
       const newMember = await member.update(parsedMember);
-      setMembers((prev) => {
+      setGroups((prev) => {
         const index = prev!.indexOf(member);
         const updated = [...prev!];
         updated[index] = newMember;
@@ -215,29 +213,6 @@ export function MemberEditDialog({ member, open, setOpen, setMembers }: Props) {
               fullWidth
               error={!!errorMsg.email}
               helperText={errorMsg.email}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12 }}>
-            <FormControl fullWidth>
-              <Typography variant="caption">講習</Typography>
-              <ToggleButtonGroup
-                value={lectureDay}
-                onChange={(e, val) => setLectureDay(val)}
-                fullWidth
-              >
-                {DayOfWeek.ALL_LECTURE_DAYS.map((week) => (
-                  <ToggleButton value={week.value}>
-                    {week.jp}
-                  </ToggleButton>
-                ))}
-              </ToggleButtonGroup>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12 }}>
-            <FormControlLabel
-              control={<Checkbox checked={isCompetitionMember} onChange={(e) => setIsCompetitionMember(e.target.checked)} />}
-              label="コンクールメンバー"
             />
           </Grid>
         </Grid>

@@ -10,6 +10,7 @@ import { parseDate, fDateBackend } from 'src/utils/format-time';
 import { APIError } from 'src/abc/api-error';
 import ScheduleType from 'src/abc/schedule-type';
 
+import type Group from './group';
 import type Grade from './grade';
 
 // ----------------------------------------------------------------------
@@ -18,11 +19,16 @@ export default class Schedule {
   constructor(
     public date: Dayjs,
     public type: ScheduleType,
-    public target: string[] | null,
+    public generations: number[] | null,
+    public groups: string[] | null,
+    public excludeGroups: string[] | null,
   ) {}
 
   static fromSchema(data: SchedulesResult) {
-    return data.map((item) => new Schedule(item.date, item.type, item.target));
+    return data.map(
+      (item) =>
+        new Schedule(item.date, item.type, item.generations, item.groups, item.excludeGroups),
+    );
   }
 
   static async get(): Promise<Schedule[]> {
@@ -34,8 +40,14 @@ export default class Schedule {
     }
   }
 
-  static async add(date: Dayjs, type: ScheduleType, target: string[] | null): Promise<boolean> {
-    const body = SchedulePostSchema.parse({date, type, target});
+  static async add(
+    date: Dayjs,
+    type: ScheduleType,
+    generations: number[] | null,
+    groups: string[] | null,
+    exclude_groups: string[] | null,
+  ): Promise<boolean> {
+    const body = SchedulePostSchema.parse({ date, type, generations, groups, exclude_groups });
 
     try {
       const result = await axios.post('/schedule', body, {
@@ -43,14 +55,19 @@ export default class Schedule {
       });
       return result.data.result;
     } catch (e) {
-      console.log(e)
+      console.log(e);
       throw APIError.fromError(e);
     }
   }
 
-  async update(type: ScheduleType, target: string[] | null): Promise<boolean> {
+  async update(
+    type: ScheduleType,
+    generations: number[] | null,
+    groups: string[] | null,
+    exclude_groups: string[] | null,
+  ): Promise<boolean> {
     this.type = type;
-    return Schedule.add(this.date, type, target);
+    return Schedule.add(this.date, type, generations, groups, exclude_groups);
   }
 
   async remove(): Promise<boolean> {
@@ -70,32 +87,32 @@ export default class Schedule {
     return new DateOnly(this.date.year(), this.date.month(), this.date.date());
   }
 
-  getDisplayTarget(grade: Grade[]): string {
+  getDisplayTarget(grade: Grade[], groups: Group[]): string {
     const displays: string[] = [];
-    this.target?.forEach((t) => {
-      if (t.startsWith('g:')) {
-        const generation = Number(t.substring(2));
-        const g = grade.find((_g) => _g.generation === generation);
-        if (g) {
-          displays.push(g.displayName);
-        }
-      } else if (t.startsWith('c:')) {
-        if (t === "c:Y") displays.push("コンクールメンバー")
-        else displays.push("コンクールメンバー以外")
-      }
+    this.groups?.forEach((t) => {
+      const group = groups.find((g) => g.id === t)?.displayName
+      if (group) displays.push(group);
+    });
+    this.excludeGroups?.forEach((t) => {
+      const group = groups.find((g) => g.id === t)?.displayName
+      if (group) displays.push(`${group}以外`);
+    });
+    this.generations?.forEach((g) => {
+      const gradeName = grade.find((gr) => gr.generation === g)?.displayName;
+      if (gradeName) displays.push(gradeName);
     });
 
-    return displays.join(",");
+    return displays.join(', ');
   }
 }
-
-
 
 export const SchedulesSchema = z
   .object({
     date: z.string().transform((date) => parseDate(date)),
     type: z.string().transform(ScheduleType.valueOf),
-    target: z.string().array().nullable(),
+    generations: z.number().array().nullable(),
+    groups: z.string().array().nullable(),
+    excludeGroups: z.string().array().nullable(),
   })
   .array();
 export type SchedulesResult = z.infer<typeof SchedulesSchema>;
@@ -103,5 +120,7 @@ export type SchedulesResult = z.infer<typeof SchedulesSchema>;
 export const SchedulePostSchema = z.object({
   date: z.any().transform((date) => fDateBackend(date)),
   type: z.instanceof(ScheduleType).transform((type) => type.value),
-  target: z.string().array().nullable(),
+  generations: z.number().array().nullable(),
+  groups: z.string().array().nullable(),
+  exclude_groups: z.string().array().nullable(),
 });

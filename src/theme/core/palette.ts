@@ -77,6 +77,7 @@ export const success = createPaletteChannel(themeConfig.palette.success);
 
 // Warning color
 export const warning = createPaletteChannel(themeConfig.palette.warning);
+export const orange = createPaletteChannel(themeConfig.palette.orange);
 
 // Error color
 export const error = createPaletteChannel(themeConfig.palette.error);
@@ -133,6 +134,7 @@ export const basePalette = {
   error,
   common,
   grey,
+  orange,
   divider: varAlpha(grey['500Channel'], 0.2),
 };
 

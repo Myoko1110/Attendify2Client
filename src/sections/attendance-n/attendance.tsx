@@ -42,14 +42,14 @@ const attendanceStatuses: Record<string, AttendanceStatus> = {
   '無欠': { label: '無欠', style: 'bg-[repeating-linear-gradient(45deg,#9b9162,#9b9162_8px,#646464_8px,#646464_16px)] text-white', value: 0, counted: true },
 };
 
-const getAttendanceStyle = (label: string): string => {
+export const getAttendanceStyle = (label: string): string => {
   if (attendanceStatuses[label]) {
     return attendanceStatuses[label].style;
   }
   return 'bg-gray-200 text-gray-900';
 };
 
-const AttendanceCellEditor = ({
+export const AttendanceCellEditor = ({
   attendance,
   onSave,
   onDelete,

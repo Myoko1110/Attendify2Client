@@ -19,5 +19,9 @@ export default class ScheduleType {
     throw new Error(`Invalid schedule type: ${value}`);
   }
 
+  equals(other: ScheduleType): boolean {
+    return this.value === other.value;
+  }
+
   constructor(public readonly value: string, public displayName: string, public color: string, public textColor: string) {}
 }

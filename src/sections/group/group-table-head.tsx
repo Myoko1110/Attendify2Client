@@ -1,6 +1,4 @@
-import type Member from 'src/api/member';
-
-import { memo, useCallback } from 'react';
+import type Group from 'src/api/group';
 
 import Box from '@mui/material/Box';
 import TableRow from '@mui/material/TableRow';
@@ -18,12 +16,12 @@ type UserTableHeadProps = {
   rowCount: number;
   numSelected: number;
   order: 'asc' | 'desc';
-  onSort: (id: keyof Member) => void;
+  onSort: (id: keyof Group) => void;
   headLabel: Record<string, any>[];
   onSelectAllRows: (checked: boolean) => void;
 };
 
-export const UserTableHead = memo(function UserTableHead({
+export function GroupTableHead({
   order,
   onSort,
   orderBy,
@@ -32,13 +30,6 @@ export const UserTableHead = memo(function UserTableHead({
   numSelected,
   onSelectAllRows,
 }: UserTableHeadProps) {
-  const handleSelectAllChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      onSelectAllRows(event.target.checked);
-    },
-    [onSelectAllRows]
-  );
-
   return (
     <TableHead>
       <TableRow>
@@ -46,7 +37,9 @@ export const UserTableHead = memo(function UserTableHead({
           <Checkbox
             indeterminate={numSelected > 0 && numSelected < rowCount}
             checked={rowCount > 0 && numSelected === rowCount}
-            onChange={handleSelectAllChange}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+              onSelectAllRows(event.target.checked)
+            }
           />
         </TableCell>
 
@@ -57,26 +50,22 @@ export const UserTableHead = memo(function UserTableHead({
             sortDirection={orderBy === headCell.id ? order : false}
             sx={{ width: headCell.width, minWidth: headCell.minWidth, border: 0 }}
           >
-            {headCell.sortable !== false ? (
-              <TableSortLabel
-                hideSortIcon
-                active={orderBy === headCell.id}
-                direction={orderBy === headCell.id ? order : 'asc'}
-                onClick={() => onSort(headCell.id)}
-              >
-                {headCell.label}
-                {orderBy === headCell.id ? (
-                  <Box sx={{ ...visuallyHidden }}>
-                    {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
-                  </Box>
-                ) : null}
-              </TableSortLabel>
-            ) : (
-              headCell.label
-            )}
+            <TableSortLabel
+              hideSortIcon
+              active={orderBy === headCell.id}
+              direction={orderBy === headCell.id ? order : 'asc'}
+              onClick={() => onSort(headCell.id)}
+            >
+              {headCell.label}
+              {orderBy === headCell.id ? (
+                <Box sx={{ ...visuallyHidden }}>
+                  {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                </Box>
+              ) : null}
+            </TableSortLabel>
           </TableCell>
         ))}
       </TableRow>
     </TableHead>
   );
-});
+}

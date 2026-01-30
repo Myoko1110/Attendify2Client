@@ -14,7 +14,8 @@ import { AuthLoader } from 'src/components/auth-loader';
 // ----------------------------------------------------------------------
 
 export const AttendanceNewPage = lazy(() => import('src/pages/attendance-n'));
-export const UserPage = lazy(() => import('src/pages/user'));
+export const MemberPage = lazy(() => import('src/pages/member'));
+export const GroupPage = lazy(() => import('src/pages/group'));
 export const InputPage = lazy(() => import('src/pages/input'));
 export const SchedulePage = lazy(() => import('src/pages/schedule'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
@@ -53,7 +54,8 @@ export const routesSection: RouteObject[] = [
     ),
     children: [
       { index: true, element: <AttendanceNewPage /> },
-      { path: 'member', element: <UserPage /> },
+      { path: 'member', element: <MemberPage /> },
+      { path: 'group', element: <GroupPage /> },
       { path: 'schedule', element: <SchedulePage /> },
       { path: 'input', element: <InputPage /> },
     ],

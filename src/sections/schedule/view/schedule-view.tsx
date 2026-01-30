@@ -18,6 +18,7 @@ import { useGrade } from 'src/hooks/grade';
 
 import { defaultTimezone } from 'src/utils/format-time';
 
+import Group from 'src/api/group';
 import Schedule from 'src/api/schedule';
 import { APIError } from 'src/abc/api-error';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -31,6 +32,8 @@ export function ScheduleView() {
   const grade = useGrade();
   
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+
+  const [groups, setGroups] = useState<Group[]>([]);
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addDate, setAddDate] = useState<Dayjs>();
@@ -69,6 +72,9 @@ export function ScheduleView() {
     try {
       const result = await Schedule.get();
       setSchedules(result);
+
+      const gs = await Group.getAll();
+      setGroups(gs);
     } catch (e) {
       toast.error(APIError.createToastMessage(e));
     }
@@ -99,7 +105,7 @@ export function ScheduleView() {
             fontSize: '0.55em',
           },
         })}>
-          {eventInfo.event.extendedProps.schedule.getDisplayTarget(grade)}
+          {eventInfo.event.extendedProps.schedule.getDisplayTarget(grade, groups)}
         </Box>
       </Box>
     );
@@ -162,12 +168,14 @@ export function ScheduleView() {
         setOpen={setAddDialogOpen}
         date={addDate}
         setSchedules={setSchedules}
+        groups={groups}
       />
       <ScheduleEditDialog
         open={editDialogOpen}
         setOpen={setEditDialogOpen}
         schedule={editSchedule}
         setSchedules={setSchedules}
+        groups={groups}
       />
     </DashboardContent>
   );

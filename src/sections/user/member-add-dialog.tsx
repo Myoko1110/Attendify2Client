@@ -30,7 +30,7 @@ import { APIError } from 'src/abc/api-error';
 type Props = {
   open: boolean;
   setOpen: (open: boolean) => void;
-  setMembers: React.Dispatch<React.SetStateAction<Member[] | null>>;
+  setGroups: React.Dispatch<React.SetStateAction<Member[] | null>>;
 };
 
 const MemberPostSchema = z.object({
@@ -42,6 +42,7 @@ const MemberPostSchema = z.object({
   generation: z.number().min(1, '必須項目です'),
   lectureDay: z.string().array().transform((days) => days.map(DayOfWeek.valueOf)),
   isCompetitionMember: z.boolean(),
+  isTemporarilyRetired: z.boolean(),
 });
 
 
@@ -55,7 +56,7 @@ const initialErrorMsg = {
 }
 
 
-export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
+export function MemberAddDialog({ open, setOpen, setGroups }: Props) {
   const [name, setName] = useState('');
   const [nameKana, setNameKana] = useState('');
   const [part, setPart] = useState('');
@@ -100,12 +101,13 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
         generation: generation ? Number(generation) : 0,
         lectureDay,
         isCompetitionMember,
+        isTemporarilyRetired: false,
       });
 
       handleClose();
 
       const m = await Member.addOne(parsedMember);
-      setMembers((prev): Member[] => [...prev!, m]);
+      setGroups((prev): Member[] => [...prev!, m]);
 
       toast.success("登録しました");
 

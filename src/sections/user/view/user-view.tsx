@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -35,6 +35,19 @@ export function UserView() {
   const [filterName, setFilterName] = useState('');
   const [addOpen, setAddOpen] = useState(false);
 
+  // O(1) で選択状態を確認するための Set
+  const selectedSet = useMemo(
+    () => new Set(table.selected.map((m) => m.id)),
+    [table.selected]
+  );
+
+  const handleSelectAllRows = useCallback(
+    (checked: boolean) => {
+      table.onSelectAllRows(checked, members || []);
+    },
+    [table, members]
+  );
+
   const dataFiltered: Member[] = applyFilter({
     inputData: members || [],
     comparator: getComparator(table.order, table.orderBy),
@@ -45,16 +58,16 @@ export function UserView() {
 
   const loadMembers = async () => {
     try {
-      const m = await Member.get();
+      const m = await Member.get({ includeGroups: true, includeWeeklyParticipation: true, includeStatusPeriods: true });
       setMembers(m);
     } catch (e) {
-      toast.error(APIError.createToastMessage(e))
+      toast.error(APIError.createToastMessage(e));
     }
   };
 
   useEffect(() => {
     loadMembers();
-  }, [])
+  }, []);
 
   return (
     <DashboardContent>
@@ -78,24 +91,21 @@ export function UserView() {
         </Button>
       </Box>
 
-      <Card sx={{
-        flex: 1,
-        ...(members === null && {
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }),
-      }}>
+      <Card
+        sx={{
+          flex: 1,
+          ...(members === null && {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }),
+        }}
+      >
         {members !== null ? (
           <>
             <UserTableToolbar
               selected={table.selected}
-              onSelectAllRows={(checked) =>
-                table.onSelectAllRows(
-                  checked,
-                  members
-                )
-              }
+              onSelectAllRows={handleSelectAllRows}
               filterName={filterName}
               onFilterName={(event: React.ChangeEvent<HTMLInputElement>) => {
                 setFilterName(event.target.value);
@@ -113,34 +123,28 @@ export function UserView() {
                     rowCount={members.length}
                     numSelected={table.selected.length}
                     onSort={table.onSort}
-                    onSelectAllRows={(checked) =>
-                      table.onSelectAllRows(
-                        checked,
-                        members
-                      )
-                    }
+                    onSelectAllRows={handleSelectAllRows}
                     headLabel={[
                       { id: 'nameKana', label: '名前' },
+                      { id: 'groups' , label: 'グループ', sortable: false },
                       { id: 'part', label: 'パート' },
                       { id: 'role', label: '役職' },
-                      { id: 'grade', label: '学年' },
+                      { id: 'generation', label: '学年' },
                       { id: 'email', label: 'メールアドレス' },
-                      { id: 'recture', label: '講習' },
-                      { id: '' },
+                      { id: 'pariticipationInfo', label: '参加情報', sortable: false, align: 'center' },
                       { id: '' },
                     ]}
                   />
                   <TableBody>
-                    {dataFiltered
-                      .map((row) => (
-                        <UserTableRow
-                          key={row.id}
-                          row={row}
-                          setMembers={setMembers}
-                          selected={table.selected.includes(row)}
-                          onSelectRow={() => table.onSelectRow(row)}
-                        />
-                      ))}
+                    {dataFiltered.map((row) => (
+                      <UserTableRow
+                        key={row.id}
+                        row={row}
+                        setMembers={setMembers}
+                        selected={selectedSet.has(row.id)}
+                        onSelectRow={table.onSelectRow}
+                      />
+                    ))}
 
                     <TableEmptyRows
                       height={54}
@@ -150,15 +154,21 @@ export function UserView() {
                     {notFound && <TableNoData searchQuery={filterName} />}
                   </TableBody>
                 </Table>
+                {members.length === 0 && (
+                  <Box sx={{ p: 3 }}>
+                    <Typography variant="body2" align="center" sx={{ mt: 3, mb: 3, width: '100%' }}>
+                      部員が登録されていません。右上の登録ボタンから追加して下さい。
+                    </Typography>
+                  </Box>
+                )}
               </TableContainer>
             </Scrollbar>
           </>
         ) : (
           <Loading />
         )}
-
       </Card>
-      <MemberAddDialog open={addOpen} setOpen={setAddOpen} setMembers={setMembers} />
+      <MemberAddDialog open={addOpen} setOpen={setAddOpen} setGroups={setMembers} />
     </DashboardContent>
   );
 }
@@ -178,7 +188,7 @@ export function useTable() {
       setOrder(isAsc ? 'desc' : 'asc');
       setOrderBy(id);
     },
-    [order, orderBy]
+    [order, orderBy],
   );
 
   const onSelectAllRows = useCallback((checked: boolean, newSelecteds: Member[]) => {
@@ -189,16 +199,14 @@ export function useTable() {
     setSelected([]);
   }, []);
 
-  const onSelectRow = useCallback(
-    (inputValue: Member) => {
-      const newSelected = selected.includes(inputValue)
-        ? selected.filter((value) => value !== inputValue)
-        : [...selected, inputValue];
-
-      setSelected(newSelected);
-    },
-    [selected]
-  );
+  const onSelectRow = useCallback((inputValue: Member) => {
+    setSelected((prev) => {
+      const isSelected = prev.includes(inputValue);
+      return isSelected
+        ? prev.filter((value) => value !== inputValue)
+        : [...prev, inputValue];
+    });
+  }, []);
 
   const onResetPage = useCallback(() => {
     setPage(0);
@@ -213,7 +221,7 @@ export function useTable() {
       setRowsPerPage(parseInt(event.target.value, 10));
       onResetPage();
     },
-    [onResetPage]
+    [onResetPage],
   );
 
   return {

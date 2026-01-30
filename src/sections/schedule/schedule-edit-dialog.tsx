@@ -1,3 +1,5 @@
+import type Group from 'src/api/group';
+
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 
@@ -25,30 +27,27 @@ type Props = {
   setOpen: (open: boolean) => void;
   schedule?: Schedule;
   setSchedules: React.Dispatch<React.SetStateAction<Schedule[]>>;
+  groups: Group[];
 };
 
-export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules }: Props) {
+export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, groups }: Props) {
   const grade = useGrade();
-  const [scheduleType, setScheduleType] = useState<string | null>(schedule?.type.value || null);
+  const [scheduleType, setScheduleType] = useState<string | null>(null);
 
-  const [targetGrade, setTargetGrade] = useState<string[] | null>(null);
+  const [targetGenerations, setTargetGenerations] = useState<number[]>([]);
+  const [targetGroups, setTargetGroups] = useState<string[]>([]);
+  const [excludeGroups, setExcludeGroups] = useState<string[]>([]);
 
-  const [targetCompetition, setTargetCompetition] = useState<string | null>(null);
 
   useEffect(() => {
-    if (schedule?.target) {
-      const filteredGrade = schedule.target.filter((s) => s.startsWith('g:'));
-      setTargetGrade(filteredGrade);
+    if (!schedule) return;
 
-      const filteredCompetition = schedule.target.find((s) => s.startsWith('c:'));
-      if (filteredCompetition) {
-        setTargetCompetition(filteredCompetition);
-      }
-    } else {
-      setTargetGrade(null);
-      setTargetCompetition(null);
-    }
+    setScheduleType(schedule.type.value);
+    setTargetGenerations(schedule.generations ?? []);
+    setTargetGroups(schedule.groups ?? []);
+    setExcludeGroups(schedule.excludeGroups ?? []);
   }, [schedule]);
+
 
   useEffect(() => {
     setScheduleType(schedule?.type.value || null);
@@ -59,30 +58,51 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules }: Pr
   };
 
   const handleSubmit = async () => {
-    if (!schedule) return;
-    setOpen(false);
+    if (!schedule || !scheduleType) return;
 
-    const trg: string[] = [];
-    if (targetGrade) trg.push(...targetGrade);
-    if (targetCompetition) trg.push(targetCompetition);
+    try {
+      const type = ScheduleType.valueOf(scheduleType);
 
-    const type = ScheduleType.valueOf(scheduleType!)
+      await schedule.update(
+        type,
+        targetGenerations.length ? targetGenerations : null,
+        targetGroups.length ? targetGroups : null,
+        excludeGroups.length ? excludeGroups : null,
+      );
 
-    await schedule.update(type, trg.length === 0 ? null : trg);
-    setSchedules((prev: Schedule[]) => (
-      [...prev.filter((s) => !s.dateOnly.equals(schedule.dateOnly)), new Schedule(schedule.date, type, trg.length === 0 ? null : trg)]
-    ));
-    toast.success('更新しました');
+      setSchedules((prev) =>
+        prev.map((s) =>
+          s.dateOnly.equals(schedule.dateOnly)
+            ? new Schedule(
+              schedule.date,
+              type,
+              targetGenerations.length ? targetGenerations : null,
+              targetGroups.length ? targetGroups : null,
+              excludeGroups.length ? excludeGroups : null,
+            )
+            : s
+        )
+      );
+
+      toast.success('更新しました');
+      setOpen(false);
+    } catch {
+      toast.error('更新に失敗しました');
+    }
   };
+
 
   const handleRemove = async () => {
     if (!schedule) return;
-    handleClose();
 
-    await schedule!.remove();
-    setSchedules((prev) => prev.filter((i) => i.date !== schedule!.date));
+    await schedule.remove();
+    setSchedules((prev) =>
+      prev.filter((s) => !s.dateOnly.equals(schedule.dateOnly))
+    );
     toast.success('削除しました');
+    setOpen(false);
   };
+
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
@@ -174,36 +194,61 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules }: Pr
 
         <ToggleButtonGroup
           fullWidth
-          onChange={(_, val) => setTargetGrade(val)}
-          value={targetGrade}
+          value={targetGenerations}
+          onChange={(_, val) => setTargetGenerations(val)}
         >
           {grade?.map((g) => (
-            <ToggleButton key={g.generation} value={`g:${g.generation}`}>
+            <ToggleButton key={g.generation} value={g.generation}>
               {g.displayName}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          gap={2}
-          mt={1}
-        >
-          <Typography variant="subtitle2">コンクールメンバー</Typography>
-          <ToggleButtonGroup
-            sx={{ flex: 1 }}
-            onChange={(_, val) => setTargetCompetition(val)}
-            value={targetCompetition}
-            exclusive
-          >
-            <ToggleButton value="c:Y" fullWidth>
-              のみ
-            </ToggleButton>
-            <ToggleButton value="c:N" fullWidth>
-              以外
-            </ToggleButton>
-          </ToggleButtonGroup>
+
+        <Stack>
+          {groups.map((g) => (
+            <Stack
+              key={g.id}
+              direction="row"
+              alignItems="center"
+              gap={2}
+              mt={1}
+            >
+              <Typography variant="subtitle2" width={100} textAlign="center">
+                {g.displayName}
+              </Typography>
+
+              <ToggleButtonGroup
+                exclusive
+                value={
+                  targetGroups.includes(g.id)
+                    ? 'include'
+                    : excludeGroups.includes(g.id)
+                      ? 'exclude'
+                      : null
+                }
+                onChange={(_, val) => {
+                  setTargetGroups((prev) =>
+                    val === 'include'
+                      ? prev.includes(g.id) ? prev : [...prev, g.id]
+                      : prev.filter((id) => id !== g.id)
+                  );
+
+                  setExcludeGroups((prev) =>
+                    val === 'exclude'
+                      ? prev.includes(g.id) ? prev : [...prev, g.id]
+                      : prev.filter((id) => id !== g.id)
+                  );
+                }}
+              >
+                <ToggleButton value="include" fullWidth>
+                  のみ
+                </ToggleButton>
+                <ToggleButton value="exclude" fullWidth>
+                  以外
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Stack>
+          ))}
         </Stack>
       </Stack>
       <DialogActions sx={{ justifyContent: 'space-between' }}>

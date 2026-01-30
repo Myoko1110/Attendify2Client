@@ -10,7 +10,7 @@ type ThemeConfig = {
   cssVariables: ThemeCssVariables;
   fontFamily: Record<'primary' | 'secondary', string>;
   palette: Record<
-    'primary' | 'secondary' | 'info' | 'success' | 'warning' | 'error',
+    'primary' | 'secondary' | 'info' | 'success' | 'warning' | 'error' | 'orange',
     PaletteColorNoChannels
   > & {
     common: Pick<CommonColors, 'black' | 'white'>;
@@ -75,6 +75,14 @@ export const themeConfig: ThemeConfig = {
       main: '#FFAB00',
       dark: '#B76E00',
       darker: '#7A4100',
+      contrastText: '#1C252E',
+    },
+    orange: {
+      lighter: '#ffebcc',
+      light: '#ffb866',
+      main: '#ff8000',
+      dark: '#b76200',
+      darker: '#7a4100',
       contrastText: '#1C252E',
     },
     error: {
