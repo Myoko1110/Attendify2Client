@@ -21,6 +21,7 @@ export const SchedulePage = lazy(() => import('src/pages/schedule'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const PreCheckPage = lazy(() => import('src/pages/pre-check'));
 export const PreCheckFormPage = lazy(() => import('src/pages/pre-check-form'));
+export const FelicaPage = lazy(() => import('src/pages/felica'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 export const Page403 = lazy(() => import('src/pages/page-forbidden'));
 
@@ -61,7 +62,8 @@ export const routesSection: RouteObject[] = [
       { path: 'group', element: <GroupPage /> },
       { path: 'schedule', element: <SchedulePage /> },
       { path: 'input', element: <InputPage /> },
-      {path: 'pre-check', element: <PreCheckPage />},
+      { path: 'pre-check', element: <PreCheckPage /> },
+      { path: 'ic', element: <FelicaPage />},
     ],
   },
   {
