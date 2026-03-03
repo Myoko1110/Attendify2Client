@@ -1,15 +1,15 @@
 import { CONFIG } from 'src/config-global';
 
-import { NotFoundView } from 'src/sections/error';
+import { PreCheckView } from 'src/sections/pre-check-form';
 
 // ----------------------------------------------------------------------
 
 export default function Page() {
   return (
     <>
-      <title>{`エラー - ${CONFIG.appName}`}</title>
+      <title>{`事前出欠フォーム - ${CONFIG.appName}`}</title>
 
-      <NotFoundView />
+      <PreCheckView />
     </>
   );
 }

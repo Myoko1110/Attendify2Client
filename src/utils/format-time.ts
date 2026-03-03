@@ -47,17 +47,9 @@ dayjs.tz.setDefault(defaultTimezone);
 export type DatePickerFormat = Dayjs | Date | string | number | null | undefined;
 
 export const formatPatterns = {
-  dateTime: 'YYYY/MM/DD hh:mm', // 17 Apr 2022 12:00 am
+  dateTime: 'YYYY/MM/DD HH:mm', // 17 Apr 2022 12:00 am
   date: 'YYYY/MM/DD', // 17 Apr 2022
-  time: 'hh:mm', // 12:00 am
-  split: {
-    dateTime: 'DD/MM/YYYY h:mm a', // 17/04/2022 12:00 am
-    date: 'DD/MM/YYYY', // 17/04/2022
-  },
-  paramCase: {
-    dateTime: 'DD-MM-YYYY h:mm a', // 17-04-2022 12:00 am
-    date: 'DD-MM-YYYY', // 17-04-2022
-  },
+  time: 'HH:mm',
   backend: {
     dateTime: 'YYYY-MM-DDTHH:mm:ss.SSSSSSZ',
     date: 'YYYY-MM-DD',
@@ -77,7 +69,7 @@ export function fDateTime(date: DatePickerFormat, template?: string): string {
     return 'Invalid date';
   }
 
-  return dayjs(date).format(template ?? formatPatterns.dateTime);
+  return dayjs.tz(date).format(template ?? formatPatterns.dateTime);
 }
 
 // ----------------------------------------------------------------------
@@ -137,4 +129,11 @@ export function fDateBackend(date: Dayjs) {
     throw Error('Invalid date value');
   }
   return date.tz().format(formatPatterns.backend.date);
+}
+
+export function isBetweenDate(current: Dayjs, start: Dayjs, end: Dayjs) {
+  return (
+    (current.isAfter(start, 'date') || current.isSame(start, 'date')) &&
+    (current.isBefore(end, 'date') || current.isSame(end, 'date'))
+  );
 }

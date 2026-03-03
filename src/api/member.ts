@@ -30,7 +30,6 @@ export default class Member {
     public role: Role,
     public lectureDay: DayOfWeek[],
     public isCompetitionMember: boolean,
-    public isTemporarilyRetired: boolean,
     public groups?: Group[],
     public weeklyParticipations?: WeeklyParticipation[],
     public membershipStatusPeriods?: MembershipStatusPeriod[],
@@ -47,7 +46,6 @@ export default class Member {
       data.role,
       data.lectureDay,
       data.isCompetitionMember,
-      data.isTemporarilyRetired,
 
       data.groups ? Group.fromSchemaArray(data.groups) : undefined,
       data.weeklyParticipations ? data.weeklyParticipations : undefined,
@@ -79,14 +77,26 @@ export default class Member {
       const result = await axios.get(`/members`, { params });
       return MemberArraySchema.parse(result.data).map((data) => Member.fromSchema(data));
     } catch (e) {
-      console.log(e);
       throw APIError.fromError(e);
     }
   }
 
-  static async getSelf(): Promise<Member> {
+  static async getSelf({
+    includeGroups = false,
+    includeWeeklyParticipation = false,
+    includeStatusPeriods = false,
+  }: {
+    includeGroups?: boolean;
+    includeWeeklyParticipation?: boolean;
+    includeStatusPeriods?: boolean;
+  }): Promise<Member> {
+    const params = new URLSearchParams();
+    if (includeGroups) params.append('include_groups', 'true');
+    if (includeWeeklyParticipation) params.append('include_weekly_participation', 'true');
+    if (includeStatusPeriods) params.append('include_status_periods', 'true');
+
     try {
-      const result = await axios.get(`/member/self`);
+      const result = await axios.get(`/member/self?${params}`);
       return Member.fromSchema(MemberSchema.parse(result.data));
     } catch (e) {
       throw APIError.fromError(e);
@@ -113,7 +123,6 @@ export default class Member {
       const result = await axios.post(`/member`, body);
       return Member.fromSchema(MemberSchema.parse(result.data));
     } catch (e) {
-      console.log(e);
       throw APIError.fromError(e);
     }
   }
@@ -141,7 +150,6 @@ export default class Member {
       const role = update.role || this.role;
       const lectureDay = update.lectureDay || this.lectureDay;
       const isCompetitionMember = update.isCompetitionMember || this.isCompetitionMember;
-      const isTemporarilyRetired = update.isTemporarilyRetired || this.isTemporarilyRetired;
 
       return new Member(
         this.id,
@@ -153,10 +161,8 @@ export default class Member {
         role,
         lectureDay,
         isCompetitionMember,
-        isTemporarilyRetired,
         this.groups,
         this.weeklyParticipations,
-        this.membershipStatusPeriods,
       );
     } catch (e) {
       throw APIError.fromError(e);
@@ -173,6 +179,28 @@ export default class Member {
 
   statusAt(date?: Dayjs | Date): MembershipStatusPeriod | null {
     return getStatusAt(this.membershipStatusPeriods, date);
+  }
+
+  /**
+   * ダッシュボードへのアクセス権限をチェック
+   * 高2以上、または執行部・パートリーダー・出欠係のみアクセス可能
+   * @param grades - 学年情報の配列
+   * @returns アクセス可能かどうか
+   */
+  canAccessDashboard(grades: Grade[]): boolean {
+    // 役職による権限チェック
+    const hasPermissionByRole =
+      this.role.value === Role.EXECUTIVE.value ||
+      this.role.value === Role.PART_LEADER.value ||
+      this.role.value === Role.ATTENDANCE_OFFICER.value;
+
+    if (hasPermissionByRole) {
+      return true;
+    }
+
+    // 学年による権限チェック（高2以上）
+    const memberGrade = this.getGrade(grades);
+    return !!(memberGrade && memberGrade.name === 'senior2');
   }
 
   async getWeeklyParticipation(): Promise<WeeklyParticipation[]> {
@@ -289,10 +317,14 @@ export default class Member {
   ) {
     const body = MembershipStatusPeriodPostSchema.parse(data);
     try {
-      const result = await axios.post("/member/statuses", {
-        memberIds: members.map((m) => m.id),
-        statusPeriod: body,
-      }, {headers: { 'content-type': 'application/json' }});
+      const result = await axios.post(
+        '/member/statuses',
+        {
+          memberIds: members.map((m) => m.id),
+          statusPeriod: body,
+        },
+        { headers: { 'content-type': 'application/json' } },
+      );
       return MembershipStatusPeriodSchema.array().parse(result.data);
     } catch (e) {
       throw APIError.fromError(e);
@@ -310,7 +342,6 @@ export default class Member {
       this.role,
       this.lectureDay,
       this.isCompetitionMember,
-      this.isTemporarilyRetired,
       this.groups ? [...this.groups] : undefined,
       this.weeklyParticipations ? [...this.weeklyParticipations] : undefined,
       this.membershipStatusPeriods ? [...this.membershipStatusPeriods] : undefined,
@@ -319,7 +350,7 @@ export default class Member {
 }
 
 export const WeeklyParticipationPostSchema = z.object({
-  weekday: z.number().int().min(0).max(6),
+  weekday: z.number().int().min(0).max(6), // 0=Mon, 1=Tue, ..., 6=Sun
   defaultAttendance: z.string().nullable(),
   isActive: z.boolean(),
 });
@@ -344,7 +375,6 @@ export const MemberPostSchema = z.object({
   role: z.instanceof(Role).transform((role) => role.value),
   lectureDay: z.array(z.instanceof(DayOfWeek)).transform((data) => data.map((d) => d.value)),
   isCompetitionMember: z.boolean(),
-  isTemporarilyRetired: z.boolean(),
 });
 export const MemberArrayPostSchema = z.array(MemberPostSchema);
 
@@ -381,8 +411,8 @@ export type MembershipStatusPeriod = z.infer<typeof MembershipStatusPeriodSchema
 
 export const MembershipStatusPeriodPostSchemaFront = z.object({
   statusId: z.string().uuid().nonempty('必須項目です'),
-  startDate: z.custom<Dayjs>((val) => dayjs.isDayjs(val) && val.isValid()),
-  endDate: z.custom<Dayjs>((val) => dayjs.isDayjs(val) && val.isValid()),
+  startDate: z.custom<Dayjs>((val) => dayjs.isDayjs(val) && val.isValid(), '必須項目です'),
+  endDate: z.custom<Dayjs>((val) => dayjs.isDayjs(val) && val.isValid(), '必須項目です'),
 });
 export type MembershipStatusPeriodPostFront = z.infer<typeof MembershipStatusPeriodPostSchemaFront>;
 
@@ -398,8 +428,6 @@ export const MemberSchema = z.object({
     .array(z.string())
     .transform((data) => data.map(DayOfWeek.valueOf).sort((a, b) => (a.num > b.num ? 1 : -1))),
   isCompetitionMember: z.boolean(),
-  isTemporarilyRetired: z.boolean(),
-
   groups: GroupSchema.array().nullish(),
   weeklyParticipations: WeeklyParticipationSchema.array().nullish(),
   membershipStatusPeriods: MembershipStatusPeriodSchema.array().nullish(),

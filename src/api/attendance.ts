@@ -23,7 +23,7 @@ export default class Attendance {
     public attendance: string,
     public createdAt: Dayjs,
     public updatedAt: Dayjs,
-    public memberId: string,
+    public memberId: string | null,
   ) {}
 
   static fromSchema(data: AttendanceResult) {
@@ -48,12 +48,11 @@ export default class Attendance {
     date?: Dayjs;
     month?: Month;
   } = {}): Promise<Attendances> {
-
     const params = new URLSearchParams();
     if (part) params.append('part', part.value);
     if (generation) params.append('generation', generation.toString());
     if (date) params.append('date', date.format('YYYY-MM-DD'));
-    if (month) params.append("month", month.toString())
+    if (month) params.append('month', month.toString());
 
     try {
       const result = await axios.get(`/attendances`, { params });
@@ -61,16 +60,17 @@ export default class Attendance {
         ...AttendanceArraySchema.parse(result.data).map((data) => Attendance.fromSchema(data)),
       );
     } catch (e) {
-      console.log(e);
       throw APIError.fromError(e);
     }
   }
 
-  static async add(attendances: AttendanceArrayPost): Promise<boolean> {
+  static async add(attendances: AttendanceArrayPost, overwrite: boolean = false): Promise<boolean> {
     const body = AttendanceArrayPostSchema.parse(attendances);
 
+    const params = new URLSearchParams({ overwrite: overwrite.toString() });
+
     try {
-      const result = await axios.post(`/attendances`, body, {
+      const result = await axios.post(`/attendances?${params}`, body, {
         headers: { 'content-type': 'application/json' },
       });
       return result.data.result;
@@ -117,28 +117,52 @@ export default class Attendance {
   get dateOnly(): DateOnly {
     return new DateOnly(this.date.year(), this.date.month(), this.date.date());
   }
+
+  static async bulkRemove(attendances: Attendance[]): Promise<boolean> {
+    try {
+      const ids = attendances.map((attendance) => attendance.id);
+      const result = await axios.delete(`/attendances`, {
+        data: ids,
+        headers: { 'content-type': 'application/json' },
+      });
+      return result.data.result;
+    } catch (e) {
+      throw APIError.fromError(e);
+    }
+  }
 }
 
 export const AttendanceSchema = z.object({
   id: z.string().uuid(),
   date: z.string().transform((date) => parseDate(date)),
   attendance: z.string(),
-  createdAt: z.string().datetime().transform((date) => parseDateTime(date)),
-  updatedAt: z.string().datetime().transform((date) => parseDateTime(date)),
-  memberId: z.string().uuid(),
+  createdAt: z
+    .string()
+    .datetime()
+    .transform((date) => parseDateTime(date)),
+  updatedAt: z
+    .string()
+    .datetime()
+    .transform((date) => parseDateTime(date)),
+  memberId: z.string().uuid().nullable(),
 });
 export const AttendanceArraySchema = z.array(AttendanceSchema);
 export type AttendanceResult = z.infer<typeof AttendanceSchema>;
 
-export const AttendancePostSchema = z.object({
-  member: z.instanceof(Member).transform((member) => member.id),
-  attendance: z.string(),
-  date: z.any().refine((val): val is Dayjs => dayjs.isDayjs(val)).transform((date) => fDateBackend(date)),
-}).transform((data) => ({
-  memberId: data.member,
-  attendance: data.attendance,
-  date: data.date,
-}));
+export const AttendancePostSchema = z
+  .object({
+    member: z.instanceof(Member).transform((member) => member.id),
+    attendance: z.string(),
+    date: z
+      .any()
+      .refine((val): val is Dayjs => dayjs.isDayjs(val))
+      .transform((date) => fDateBackend(date)),
+  })
+  .transform((data) => ({
+    memberId: data.member,
+    attendance: data.attendance,
+    date: data.date,
+  }));
 export const AttendanceArrayPostSchema = z.array(AttendancePostSchema);
 
 export type AttendancePost = z.input<typeof AttendancePostSchema>;

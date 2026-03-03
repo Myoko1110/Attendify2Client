@@ -1,15 +1,15 @@
 import { CONFIG } from 'src/config-global';
 
-import { NotFoundView } from 'src/sections/error';
+import { ForbiddenView } from 'src/sections/error';
 
 // ----------------------------------------------------------------------
 
 export default function Page() {
   return (
     <>
-      <title>{`エラー - ${CONFIG.appName}`}</title>
+      <title>{`アクセス拒否 - ${CONFIG.appName}`}</title>
 
-      <NotFoundView />
+      <ForbiddenView />
     </>
   );
 }

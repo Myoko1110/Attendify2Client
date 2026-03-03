@@ -2,37 +2,84 @@ import { useState, useEffect } from 'react';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { useGrade } from 'src/hooks/grade';
 import { useMember } from 'src/hooks/member';
 
 import Member from 'src/api/member';
 
+import { ForbiddenView } from 'src/sections/error';
+
 export function AuthLoader({
-                             children,
-                             fallback,
-                           }: {
+  children,
+  fallback,
+  redirect,
+  requireDashboardAccess = false,
+}: {
   children: React.ReactNode;
   fallback: React.ReactNode;
+  redirect?: boolean;
+  requireDashboardAccess?: boolean;
 }) {
   const router = useRouter();
 
   const { member, setMember } = useMember();
-  const [isLogin, setIsLogin] = useState(false);
+  const grade = useGrade();
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasPermission, setHasPermission] = useState(false);
+
+  const redirectTo = `${location.pathname}${location.search}${location.hash}`;
 
   useEffect(() => {
     (async () => {
       if (member) {
-        setIsLogin(true);
+        // 権限チェック
+        if (requireDashboardAccess && grade) {
+          if (!member.canAccessDashboard(grade)) {
+            setHasPermission(false);
+            setIsLoading(false);
+            return;
+          }
+          setHasPermission(true);
+        } else {
+          setHasPermission(true);
+        }
+        setIsLoading(false);
       } else {
         try {
-          const self = await Member.getSelf();
-          setIsLogin(true);
+          const self = await Member.getSelf({ includeGroups: true });
+
+          // 権限チェック
+          if (requireDashboardAccess && grade) {
+            if (!self.canAccessDashboard(grade)) {
+              setHasPermission(false);
+              setIsLoading(false);
+              setMember(self);
+              return;
+            }
+            setHasPermission(true);
+          } else {
+            setHasPermission(true);
+          }
+
+          setIsLoading(false);
           setMember(self);
-        } catch (_e) {
-          router.replace('/login');
+        } catch {
+          router.replace(`/login${(redirect && `?redirect=${redirectTo}`) || ''}`);
         }
       }
     })();
-  }, [member, router, setMember]);
+  }, [member, router, setMember, requireDashboardAccess, grade, redirect, redirectTo]);
 
-  return isLogin ? children : fallback;
+  if (!isLoading && requireDashboardAccess && !hasPermission) {
+    return <ForbiddenView />;
+  }
+
+  if (!isLoading) {
+    if (requireDashboardAccess) {
+      return hasPermission ? children : fallback;
+    }
+    return children;
+  }
+
+  return fallback;
 }

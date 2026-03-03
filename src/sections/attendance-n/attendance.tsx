@@ -18,6 +18,7 @@ import Part from 'src/abc/part';
 import Member from 'src/api/member';
 import Schedule from 'src/api/schedule';
 import Attendance from 'src/api/attendance';
+import PreAttendance from 'src/api/pre-attendance';
 import { AttendanceRate } from 'src/api/attendance-rate';
 
 import { Iconify } from 'src/components/iconify';
@@ -55,7 +56,10 @@ export const AttendanceCellEditor = ({
   onDelete,
   onClose,
   anchorEl,
-  isEditing
+  isEditing,
+  isPreMode = false,
+  reason,
+  onReasonChange,
 }: {
   attendance: Attendance | undefined;
   onSave: (value: string, update: boolean) => void;
@@ -63,8 +67,12 @@ export const AttendanceCellEditor = ({
   onClose: () => void;
   anchorEl: HTMLElement | null;
   isEditing: boolean;
+  isPreMode?: boolean;
+  reason?: string | null;
+  onReasonChange?: (reason: string) => void;
 }) => {
   const [value, setValue] = useState('');
+  const [reasonValue, setReasonValue] = useState('');
 
   const [original, setOriginal] = useState('');
   const [update, setUpdate] = useState(false);
@@ -82,11 +90,18 @@ export const AttendanceCellEditor = ({
     } else {
       onClose();
     }
+    // reasonが変更されていたら保存
+    if (isPreMode && reasonValue !== (reason || '') && onReasonChange) {
+      onReasonChange(reasonValue);
+    }
   }
 
   const handlePresetClick = (preset: string) => {
     setValue(preset);
     onSave(preset, update);
+    if (isPreMode && onReasonChange) {
+      onReasonChange(reasonValue);
+    }
     onClose();
   };
 
@@ -94,7 +109,8 @@ export const AttendanceCellEditor = ({
     setValue(attendance?.attendance || '');
     setOriginal(attendance?.attendance || '');
     setUpdate(!!attendance);
-  }, [attendance])
+    setReasonValue(reason || '');
+  }, [attendance, reason])
 
   return (
     <Popover
@@ -134,6 +150,18 @@ export const AttendanceCellEditor = ({
             <Iconify icon="solar:trash-bin-minimalistic-2-bold" />
           </IconButton>
         </div>
+        {isPreMode && (
+          <div className="w-full">
+            <textarea
+              value={reasonValue}
+              onChange={(e) => setReasonValue(e.target.value)}
+              onBlur={() => onReasonChange?.(reasonValue)}
+              className="w-full bg-gray-100 rounded px-1 py-1 text-xs focus:outline-none focus:border-blue-500 resize-none"
+              placeholder="理由"
+              rows={2}
+            />
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-1 max-h-[150px] overflow-y-auto">
           {Object.entries(attendanceStatuses).map(([key, status]) => (
             <button
@@ -152,13 +180,17 @@ export const AttendanceCellEditor = ({
 
 export interface AttendanceFilterState {
   grades: number[];              // 学年（generation）
-  competition: boolean | null;   // null = 全体
+  groupIds: string[];            // グループID
 }
 
 export const AttendanceTable = ({
-  filterOpen
+  filterOpen,
+  displayMode = 'actual',
+  onSelectionChange,
   }: {
   filterOpen: [boolean, React.Dispatch<React.SetStateAction<boolean>>];
+  displayMode?: 'actual' | 'pre';
+  onSelectionChange?: (actions: { hasSelection: boolean; selectedCount: number; deleteSelected: () => void } | null) => void;
 }) => {
   const grade = useGrade();
 
@@ -173,17 +205,24 @@ export const AttendanceTable = ({
     member: Member;
     date: Dayjs;
     attendance?: Attendance;
+    preAttendance?: PreAttendance;
     anchorEl: HTMLElement;
   } | null>(null);
 
   const [filter, setFilter] = useState<AttendanceFilterState>({
     grades: grade?.map(g => g.generation) || [],
-    competition: null,
+    groupIds: [],
   });
   const [isFiltering, setIsFiltering] = useState(false);
 
+  // selectionのコールバック（将来の拡張用）
+  useEffect(() => {
+    onSelectionChange?.(null);
+  }, [onSelectionChange]);
+
   // data
   const [attendanceData, setAttendanceData] = useState<Attendance[]>([]);
+  const [preAttendanceData, setPreAttendanceData] = useState<PreAttendance[]>([]);
   const [attendanceRates, setAttendanceRates] = useState<AttendanceRate[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [schedule, setSchedule] = useState<Schedule[]>([]);
@@ -207,9 +246,11 @@ export const AttendanceTable = ({
       // 学年フィルター
       if (!filter.grades.includes(m.generation)) return false;
 
-      // コンクールフィルター
-      if (filter.competition !== null) {
-        if (m.isCompetitionMember !== filter.competition) return false;
+      // グループフィルター
+      if (filter.groupIds.length > 0) {
+        const memberGroupIds = m.groups?.map(g => g.id) || [];
+        // 少なくとも1つのグループに所属している必要がある
+        if (!filter.groupIds.some(gId => memberGroupIds.includes(gId))) return false;
       }
 
       return true;
@@ -242,6 +283,22 @@ export const AttendanceTable = ({
     });
     return map;
   }, [attendanceData]);
+
+  // 事前出欠データのマップ（高速検索用）
+  const preAttendanceMap = useMemo(() => {
+    const map = new Map<string, PreAttendance>();
+    preAttendanceData.forEach(a => {
+      const key = `${a.memberId}-${a.date.format('YYYY-MM-DD')}`;
+      map.set(key, a);
+    });
+    return map;
+  }, [preAttendanceData]);
+
+  // displayModeに応じて使用するデータを選択
+  const currentAttendanceMap = useMemo(() =>
+    displayMode === 'pre' ? preAttendanceMap : attendanceMap,
+    [displayMode, attendanceMap, preAttendanceMap]
+  );
 
   // スケジュールのマップ（高速検索用）
   const scheduleMap = useMemo(() => {
@@ -294,11 +351,11 @@ export const AttendanceTable = ({
   // 出席データが変更されたらキャッシュをクリア
   useEffect(() => {
     setCalculatedRateCache(new Map());
-  }, [attendanceData]);
+  }, [attendanceData, preAttendanceData, displayMode]);
 
   // fetch系
   const fetchMember = async () => {
-    const _members = await Member.get();
+    const _members = await Member.get({ includeGroups: true });
     setMembers(_members);
   }
 
@@ -318,7 +375,9 @@ export const AttendanceTable = ({
     if (loadedMonths.has(monthKey)) return;
 
     const newAttendanceData = await Attendance.get({ month });
+    const newPreAttendanceData = await PreAttendance.get({ month });
     setAttendanceData(prev => new Attendances(...prev, ...newAttendanceData));
+    setPreAttendanceData(prev => [...prev, ...newPreAttendanceData]);
     setLoadedMonths(prev => new Set([...prev, monthKey]));
   }, [loadedMonths]);
 
@@ -341,6 +400,29 @@ export const AttendanceTable = ({
     return attendanceMap.get(key);
   }, [attendanceMap]);
 
+  /** 部員・日にちから事前出欠を取得 */
+  const getPreAttendance = useCallback((member: Member, date: Dayjs): PreAttendance | undefined => {
+    const key = `${member.id}-${date.format('YYYY-MM-DD')}`;
+    return preAttendanceMap.get(key);
+  }, [preAttendanceMap]);
+
+  /** displayModeに応じて出欠を取得 */
+  const getCurrentAttendance = useCallback((member: Member, date: Dayjs): Attendance | PreAttendance | undefined => {
+    const key = `${member.id}-${date.format('YYYY-MM-DD')}`;
+    return currentAttendanceMap.get(key);
+  }, [currentAttendanceMap]);
+
+  /** 差分があるかチェック（今日以前のデータで事前出欠と確定出欠が異なる場合） */
+  const hasDifference = useCallback((member: Member, date: Dayjs): boolean => {
+    if (date.isAfter(dayjs(), 'day')) return false;
+
+    const actual = getAttendance(member, date);
+    const pre = getPreAttendance(member, date);
+
+    if (!actual || !pre) return false;
+    return actual.attendance !== pre.attendance;
+  }, [getAttendance, getPreAttendance]);
+
   /** その月の出席率を計算 */
   const calcMonthRate = useCallback((targetType: string, targetId: string | null, month: Month): number | null => {
     const scheduledDays = getScheduledDaysInMonth(month);
@@ -361,6 +443,7 @@ export const AttendanceTable = ({
     targetMembers.forEach(member => {
       scheduledDays.forEach(day => {
         const date = dayjs(new Date(month.year, month.month, day));
+        // 常に確定出欠データを使用
         const attendance = getAttendance(member, date);
         if (attendance && attendanceStatuses[attendance.attendance]?.counted) {
           statusArray.push(attendance);
@@ -407,6 +490,7 @@ export const AttendanceTable = ({
 
     if (targetMembers.length === 0) return null;
 
+    // 常に確定出欠データを使用
     const attendances = targetMembers
       .map(m => getAttendance(m, date))
       .filter((a): a is Attendance => a !== undefined && attendanceStatuses[a.attendance]?.counted);
@@ -462,6 +546,90 @@ export const AttendanceTable = ({
     const current = attendanceMap.get(`${member.id}-${dateStr}`);
     await current?.remove();
   }, [attendanceMap]);
+
+  /** 事前出欠を作成 */
+  const handleCreatePreAttendance = useCallback(async (member: Member, date: Dayjs, value: string) => {
+    const results = await PreAttendance.add([{
+      member,
+      attendance: value,
+      date,
+      reason: null,
+      preCheckId: null,
+    }]);
+    if (results.length > 0) {
+      setPreAttendanceData((prev) => [...prev, results[0]]);
+    }
+  }, []);
+
+  /** 事前出欠を更新 */
+  const handleUpdatePreAttendance = useCallback(async (member: Member, date: Dayjs, value: string) => {
+    const key = `${member.id}-${date.format('YYYY-MM-DD')}`;
+    const current = preAttendanceMap.get(key);
+
+    if (current) {
+      await current.update(value);
+      // ローカルステートも更新 - PreAttendanceオブジェクトを新しく作成
+      setPreAttendanceData(prev =>
+        prev.map(a => {
+          if (a.id === current.id) {
+            return new PreAttendance(
+              a.id,
+              a.date,
+              a.memberId,
+              value,
+              a.reason,
+              a.preCheckId,
+              a.createdAt,
+              a.updateAt
+            );
+          }
+          return a;
+        })
+      );
+    }
+  }, [preAttendanceMap]);
+
+  /** 事前出欠を削除 */
+  const handleDeletePreAttendance = useCallback(async (member: Member, date: Dayjs) => {
+    const dateStr = date.format('YYYY-MM-DD');
+
+    setPreAttendanceData(prev =>
+      prev.filter(
+        a => !(a.memberId === member.id && a.date.format('YYYY-MM-DD') === dateStr)
+      )
+    );
+
+    const current = preAttendanceMap.get(`${member.id}-${dateStr}`);
+    await current?.remove();
+  }, [preAttendanceMap]);
+
+  /** 事前出欠の理由を更新 */
+  const handleUpdatePreAttendanceReason = useCallback(async (member: Member, date: Dayjs, newReason: string) => {
+    const key = `${member.id}-${date.format('YYYY-MM-DD')}`;
+    const current = preAttendanceMap.get(key);
+
+    if (current) {
+      // API呼び出しは実装されていない可能性があるため、ローカルステートのみ更新
+      // 必要に応じてAPIエンドポイントを追加してください
+      setPreAttendanceData(prev =>
+        prev.map(a => {
+          if (a.id === current.id) {
+            return new PreAttendance(
+              a.id,
+              a.date,
+              a.memberId,
+              a.attendance,
+              newReason,
+              a.preCheckId,
+              a.createdAt,
+              a.updateAt
+            );
+          }
+          return a;
+        })
+      );
+    }
+  }, [preAttendanceMap]);
 
   /** パートごとにグループ分けした部員データ */
   const sortedMembers = useMemo(() => {
@@ -630,21 +798,36 @@ export const AttendanceTable = ({
                             </td>
                             {scheduledDays.map(day => {
                               const date = dayjs(new Date(month.year, month.month, day));
-                              const attendance = getAttendance(member, date);
-                              const style = attendance ? getAttendanceStyle(attendance.attendance) : "bg-white text-gray-400 hover:bg-gray-100";
-                              const value = attendance?.attendance || "-";
+                              const currentData = getCurrentAttendance(member, date);
+                              const actualData = getAttendance(member, date);
+                              const preData = getPreAttendance(member, date);
+                              const style = currentData ? getAttendanceStyle(currentData.attendance) : "bg-white text-gray-400 hover:bg-gray-100";
+                              const value = currentData?.attendance || "-";
+                              const showDifference = hasDifference(member, date);
+
+                              // ツールチップメッセージ
+                              const diffTooltip = displayMode === 'pre'
+                                ? `確定: ${actualData?.attendance || '-'}`
+                                : `事前: ${preData?.attendance || '-'}`;
 
                               return (
-                                <td key={`${key}-${day}`} className="border border-gray-300 text-center p-0 h-4">
+                                <td key={`${key}-${day}`} className="border border-gray-300 text-center p-0 h-4 relative">
+                                  {showDifference && (
+                                    <div
+                                      className="absolute top-0 left-0 w-0 h-0 border-t-[8px] border-t-red-600 border-r-[8px] border-r-transparent z-10"
+                                      title={diffTooltip}
+                                    />
+                                  )}
                                   <button
                                     onClick={(e) => setEditingCell({
                                       member,
                                       date,
-                                      attendance,
+                                      attendance: actualData,
+                                      preAttendance: preData,
                                       anchorEl: e.currentTarget,
                                     })}
                                     className={`${style} w-full h-full p-0 font-bold hover:opacity-80 transition-opacity${value.length > 2 ? " text-[10px]" : ""}${editingCell && editingCell.date.isSame(date) && editingCell.member.id === member.id ? ' border-2' : ''}`}
-                                    title={attendance?.attendance || '未登録'}
+                                    title={currentData?.attendance || '未登録'}
                                   >
                                     {value?.substring(0, 3) || '-'}
                                   </button>
@@ -661,18 +844,32 @@ export const AttendanceTable = ({
             </tbody>
           </table>
           <AttendanceCellEditor
-            attendance={editingCell?.attendance}
+            attendance={displayMode === 'pre' ? (editingCell?.preAttendance as any) : editingCell?.attendance}
             anchorEl={editingCell?.anchorEl ?? null}
             isEditing={Boolean(editingCell)}
+            isPreMode={displayMode === 'pre'}
+            reason={displayMode === 'pre' ? editingCell?.preAttendance?.reason : undefined}
+            onReasonChange={displayMode === 'pre' && editingCell ? (newReason: string) => {
+              handleUpdatePreAttendanceReason(editingCell.member, editingCell.date, newReason);
+            } : undefined}
             onSave={async (value, update) => {
               if (!editingCell) return;
-              if (update) await handleUpdateAttendance(editingCell.member, editingCell.date, value);
-              else await handleCreateAttendance(editingCell.member, editingCell.date, value);
+              if (displayMode === 'pre') {
+                if (update) await handleUpdatePreAttendance(editingCell.member, editingCell.date, value);
+                else await handleCreatePreAttendance(editingCell.member, editingCell.date, value);
+              } else {
+                if (update) await handleUpdateAttendance(editingCell.member, editingCell.date, value);
+                else await handleCreateAttendance(editingCell.member, editingCell.date, value);
+              }
             }}
             onDelete={async () => {
-              setEditingCell(null);
               if (!editingCell) return;
-              await handleDeleteAttendance(editingCell.member, editingCell.date);
+              if (displayMode === 'pre') {
+                await handleDeletePreAttendance(editingCell.member, editingCell.date);
+              } else {
+                await handleDeleteAttendance(editingCell.member, editingCell.date);
+              }
+              setEditingCell(null);
             }}
             onClose={async () => setEditingCell(null)}
           />
@@ -685,7 +882,7 @@ export const AttendanceTable = ({
         </div>
 
         <div className="bg-gray-100 px-3 py-2 border-t text-xs text-gray-600">
-          <p><strong>操作:</strong> パート/月をクリックで展開 | セルをクリックして出欠を変更 | <span className="text-red-600 font-semibold">赤字</span>は出席率80%未満</p>
+          <p><strong>操作:</strong> パート/月をクリックで展開 | セルをクリックして出欠を変更 | <span className="text-red-600 font-semibold">赤字</span>は出席率80%未満 | <span className="text-red-600 font-semibold">左上の赤い三角</span>は事前出欠との差分</p>
         </div>
       </div>
     </div>

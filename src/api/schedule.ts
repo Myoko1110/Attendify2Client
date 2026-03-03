@@ -55,7 +55,6 @@ export default class Schedule {
       });
       return result.data.result;
     } catch (e) {
-      console.log(e);
       throw APIError.fromError(e);
     }
   }
@@ -97,10 +96,33 @@ export default class Schedule {
       const group = groups.find((g) => g.id === t)?.displayName
       if (group) displays.push(`${group}以外`);
     });
-    this.generations?.forEach((g) => {
-      const gradeName = grade.find((gr) => gr.generation === g)?.displayName;
-      if (gradeName) displays.push(gradeName);
-    });
+
+    // generationsの処理
+    if (this.generations && this.generations.length > 0) {
+      // すべてのseniorとjuniorのgenerationを取得
+      const allSeniorGenerations = grade.filter((gr) => gr.type === 'senior').map((gr) => gr.generation);
+      const allJuniorGenerations = grade.filter((gr) => gr.type === 'junior').map((gr) => gr.generation);
+
+      // this.generationsにすべてのseniorが含まれているか確認
+      const hasAllSenior = allSeniorGenerations.length > 0 &&
+        allSeniorGenerations.every((gen) => this.generations!.includes(gen));
+
+      // this.generationsにすべてのjuniorが含まれているか確認
+      const hasAllJunior = allJuniorGenerations.length > 0 &&
+        allJuniorGenerations.every((gen) => this.generations!.includes(gen));
+
+      if (hasAllSenior && !hasAllJunior) {
+        displays.push('高校生');
+      } else if (hasAllJunior && !hasAllSenior) {
+        displays.push('中学生');
+      } else {
+        // その他の場合は個別に学年名を表示
+        this.generations.forEach((g) => {
+          const gradeName = grade.find((gr) => gr.generation === g)?.displayName;
+          if (gradeName) displays.push(gradeName);
+        });
+      }
+    }
 
     return displays.join(', ');
   }

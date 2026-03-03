@@ -2,7 +2,7 @@ import { ZodError } from 'zod';
 import { AxiosError } from 'axios';
 
 export class APIErrorCode {
-  public static INVALID_AUTHENTICATION_CREDENTIALS = new APIErrorCode(100, '認証情報が無効です');
+  public static INVALID_AUTHENTICATION_CREDENTIALS = new APIErrorCode(100, 'ログインに失敗しました。もう一度お試しください。');
 
   public static PERMISSION_DENIED = new APIErrorCode(101, '権限がありません');
 
@@ -82,7 +82,6 @@ export class APIError extends Error {
   }
 
   static createToastMessage(e: unknown): string {
-    console.error(e);
     if (e instanceof APIError) {
       return e.description;
     }

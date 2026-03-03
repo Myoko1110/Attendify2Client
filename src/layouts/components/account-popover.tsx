@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
+import { Stack } from '@mui/material';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import Popover from '@mui/material/Popover';
@@ -33,7 +34,7 @@ export function AccountPopover() {
   const handleLogout = useCallback(async () => {
     await Auth.logout();
     setMember(null);
-    router.push("/login");
+    router.push('/login');
   }, [router, setMember]);
 
   return (
@@ -59,19 +60,32 @@ export function AccountPopover() {
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         slotProps={{
           paper: {
-            sx: { width: 250 },
+            sx: { width: 280 },
           },
         }}
       >
-        <Box sx={{ p: 2, pb: 1.5 }}>
-          <Typography variant="subtitle2" noWrap>
-            {member?.name}
-          </Typography>
+        <Stack direction="row" alignItems="center">
+          <Box
+            sx={{
+              background: (theme) =>
+                `conic-gradient(${theme.palette.primary.light}, ${theme.palette.warning.light}, ${theme.palette.primary.light})`,
+              borderRadius: '100%',
+              m: 1.5,
+              p: '2px',
+            }}
+          >
+            <Avatar alt={member?.name} sx={{ width: 36, height: 36 }} />
+          </Box>
+          <Box sx={{ p: 0, py: 1.5, pr: 1.5 }}>
+            <Typography variant="subtitle2" noWrap>
+              {member?.name}
+            </Typography>
 
-          <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
-            {member?.email}
-          </Typography>
-        </Box>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
+              {member?.email}
+            </Typography>
+          </Box>
+        </Stack>
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 

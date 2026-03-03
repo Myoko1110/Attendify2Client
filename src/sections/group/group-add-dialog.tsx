@@ -59,7 +59,7 @@ export function GroupAddDialog({ open, setOpen, setGroups }: Props) {
       const m = await Group.create(trimmedName);
       setGroups((prev): Group[] => [...prev!, m]);
 
-      toast.success("登録しました");
+      toast.success("作成しました");
 
     } catch (e) {
       toast.error(APIError.createToastMessage(e));
@@ -90,7 +90,7 @@ export function GroupAddDialog({ open, setOpen, setGroups }: Props) {
           キャンセル
         </Button>
         <Button variant="contained" color="inherit" onClick={handleSubmit}>
-          登録
+          作成
         </Button>
       </DialogActions>
     </Dialog>

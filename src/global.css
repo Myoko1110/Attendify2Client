@@ -227,6 +227,10 @@ input[type='number']::-webkit-inner-spin-button {
   font-weight: 500;
 }
 
+.fc .fc-scrollgrid-section-sticky > * {
+    background-color: transparent;
+}
+
 :root {
   --fc-today-bg-color: rgba(145, 158, 171, 0.08);
 }

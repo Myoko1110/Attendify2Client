@@ -15,7 +15,6 @@ import Auth from 'src/api/auth';
 import Member from 'src/api/member';
 import { APIError } from 'src/abc/api-error';
 
-import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
@@ -33,19 +32,26 @@ export function SignInView() {
     (async () => {
       const state = searchParams.get('state');
       const code = searchParams.get('code');
+      const redirect = searchParams.get('redirect');
 
-      // すでにログイン済みなら
-      if (member) {
-        router.replace('/');
+      console.log(localStorage.getItem('auth_redirect'));
+
+      // リダイレクト先をlocalStorageに保存
+      if (redirect && !state && !code) {
+        localStorage.setItem('auth_redirect', redirect);
       }
 
-      // 認証コードがあったら
+      // 認証コードがあったら（OAuth2からのリダイレクト）
       if (state && code) {
         try {
           const m = await Auth.login(code, state);
           setMember(m);
 
-          router.replace('/');
+          // 保存されたリダイレクト先に遷移
+          const savedRedirect = localStorage.getItem('auth_redirect');
+          localStorage.removeItem('auth_redirect');
+          router.replace(savedRedirect || '/');
+          return; // 以降の処理をスキップ
 
         } catch (e) {
           toast.error(APIError.createToastMessage(e));
@@ -53,11 +59,22 @@ export function SignInView() {
         }
       }
 
+      // すでにログイン済みなら
+      if (member) {
+        const savedRedirect = localStorage.getItem('auth_redirect');
+        localStorage.removeItem('auth_redirect');
+        router.replace(savedRedirect || '/');
+        return; // 以降の処理をスキップ
+      }
+
       // cookieに認証情報があったら
       try {
-        const m = await Member.getSelf();
+        const m = await Member.getSelf({ includeGroups: true });
         setMember(m);
-        router.replace('/');
+        const savedRedirect = localStorage.getItem('auth_redirect');
+        localStorage.removeItem('auth_redirect');
+        router.replace(savedRedirect || '/');
+        return; // 以降の処理をスキップ
       } catch (_e) {
         /* empty */
       }
@@ -71,6 +88,7 @@ export function SignInView() {
         setAuthURL("");
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, searchParams, setMember, setSearchParams]);
 
   return (
@@ -80,11 +98,12 @@ export function SignInView() {
           gap: 1.5,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
+          alignItems: 'start',
           mb: 5,
         }}
       >
-        <Typography variant="h5">ログイン</Typography>
+        <Typography variant="h4">ログイン</Typography>
+        <Typography variant="body2">下のボタンを押して、学校アカウントでログインしてください。</Typography>
       </Box>
       <Button
         fullWidth
@@ -92,13 +111,13 @@ export function SignInView() {
         type="submit"
         color="inherit"
         variant="contained"
-        startIcon={<Iconify icon="logos:google-icon" />}
+        startIcon={<img src="assets/icons/google_favicon.svg" alt="Google Favicon" width="16px" />}
         component={RouterLink}
         href={authURL}
         loading={!authURL && !error}
         disabled={error}
       >
-        Googleアカウントでログイン
+        Googleでログイン
       </Button>
     </>
   );

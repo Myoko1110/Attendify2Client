@@ -44,17 +44,24 @@ const initialErrorMsg = {
   endDate: '',
 };
 
-export function StatusPeriodEditDialog({ open, setOpen, member, setStatusPeriods, statusPeriods, currentStatusPeriod }: Props) {
+export function StatusPeriodEditDialog({
+  open,
+  setOpen,
+  member,
+  setStatusPeriods,
+  statusPeriods,
+  currentStatusPeriod,
+}: Props) {
   const [membershipStatuses, setMembershipStatuses] = useState<MembershipStatus[] | null>(null);
 
-  const [statusId, setStatusId] = useState<string>(currentStatusPeriod?.statusId || "");
+  const [statusId, setStatusId] = useState<string>(currentStatusPeriod?.statusId || '');
   const [startDate, setStartDate] = useState<Dayjs | null>(currentStatusPeriod?.startDate || null);
   const [endDate, setEndDate] = useState<Dayjs | null>(currentStatusPeriod?.endDate || null);
 
   const [errorMsg, setErrorMsg] = useState({ ...initialErrorMsg });
 
   const reset = () => {
-    setStatusId(currentStatusPeriod?.statusId || "");
+    setStatusId(currentStatusPeriod?.statusId || '');
     setStartDate(currentStatusPeriod?.startDate || null);
     setEndDate(currentStatusPeriod?.endDate || null);
     resetErrorMsg();
@@ -89,7 +96,6 @@ export function StatusPeriodEditDialog({ open, setOpen, member, setStatusPeriods
         startDate: startDate!,
         endDate: endDate!,
       };
-
 
       if (result) {
         setStatusPeriods((prev: MembershipStatusPeriod[] | undefined) => {
@@ -129,7 +135,7 @@ export function StatusPeriodEditDialog({ open, setOpen, member, setStatusPeriods
   }, []);
 
   useEffect(() => {
-    reset()
+    reset();
   }, [currentStatusPeriod]);
 
   return (
@@ -168,11 +174,12 @@ export function StatusPeriodEditDialog({ open, setOpen, member, setStatusPeriods
                 slotProps={{
                   textField: { helperText: errorMsg.startDate },
                   calendarHeader: { format: 'YYYY年M月' },
-                  actionBar: { actions: ['today'] },
+                  actionBar: { actions: ['today', 'accept'] },
                   toolbar: { toolbarFormat: 'M月D日' },
                 }}
                 views={['year', 'month', 'day']}
                 sx={{ width: '100%' }}
+                format="YYYY/MM/DD"
               />
             </Grid>
             <Grid size={{ xs: 6 }}>
@@ -183,11 +190,12 @@ export function StatusPeriodEditDialog({ open, setOpen, member, setStatusPeriods
                 slotProps={{
                   textField: { helperText: errorMsg.startDate },
                   calendarHeader: { format: 'YYYY年M月' },
-                  actionBar: { actions: ['today'] },
+                  actionBar: { actions: ['today', 'accept'] },
                   toolbar: { toolbarFormat: 'M月D日' },
                 }}
                 views={['year', 'month', 'day']}
                 sx={{ width: '100%' }}
+                format="YYYY/MM/DD"
               />
             </Grid>
           </Grid>

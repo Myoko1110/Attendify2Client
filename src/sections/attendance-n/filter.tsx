@@ -1,12 +1,13 @@
+import type Grade from 'src/api/grade';
 import type { ChangeEvent } from 'react';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
 import {
   Box, List,
-  Radio, Stack,
+  Stack,
   Drawer,
   ListItem,
   FormGroup,
@@ -17,14 +18,14 @@ import {
 
 import { useGrade } from 'src/hooks/grade';
 
-import { Iconify } from 'src/components/iconify';
+import Group from 'src/api/group';
 
-import type Grade from '../../api/grade';
+import { Iconify } from 'src/components/iconify';
 
 
 export interface AttendanceFilterState {
   grades: number[];              // 学年（generation）
-  competition: boolean | null;   // null = 全体
+  groupIds: string[];            // グループID
 }
 
 export function AttendanceFilter({
@@ -39,9 +40,20 @@ export function AttendanceFilter({
   loading?: boolean;
 }) {
 
-
-
   const grade = useGrade();
+  const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const groups = await Group.getAll();
+        setAvailableGroups(groups);
+      } catch (error) {
+        console.error('Failed to fetch groups:', error);
+      }
+    };
+    fetchGroups();
+  }, []);
 
   const getGradesByType = (type?: string): number[] => {
     if (!type) {
@@ -64,10 +76,14 @@ export function AttendanceFilter({
     });
   }
 
-  const handleCompetitionToggle = (comp: boolean) => {
+  const handleGroupToggle = (groupId: string) => {
+    const nextGroupIds = value.groupIds.includes(groupId)
+      ? value.groupIds.filter(id => id !== groupId)
+      : [...value.groupIds, groupId];
+
     onChange({
       ...value,
-      competition: value.competition === comp ? null : comp,
+      groupIds: nextGroupIds,
     });
   }
 
@@ -82,7 +98,7 @@ export function AttendanceFilter({
       },
     }}
   >
-    <Box sx={{ px: 2, py: 2.5 }}>
+    <Box sx={{ px: 2, py: 2.5, width: 280 }}>
       <Stack direction="row" gap={1} alignItems="center" justifyContent="space-between" mb={1}>
         <Typography variant="h6">フィルター</Typography>
         <IconButton onClick={() => filterOpen[1](false)}>
@@ -90,8 +106,9 @@ export function AttendanceFilter({
         </IconButton>
       </Stack>
       <List>
-        <ListItem>
+        <ListItem disablePadding sx={{ mb: 3 }}>
           <FormGroup sx={{ width: "100%" }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>学年</Typography>
             <ButtonGroup variant="outlined" aria-label="Basic button group" sx={{ mb: 1 }}>
               <Button onClick={() => onChange({ ...value, grades: getGradesByType() })} fullWidth>全体</Button>
               <Button onClick={() => onChange({ ...value, grades: getGradesByType("junior") })} fullWidth>中学</Button>
@@ -99,6 +116,7 @@ export function AttendanceFilter({
             </ButtonGroup>
             {grade?.map((g) => (
               <FormControlLabel
+                key={g.generation}
                 value={g.generation}
                 control={
                   <Checkbox
@@ -113,29 +131,22 @@ export function AttendanceFilter({
 
           </FormGroup>
         </ListItem>
-        <ListItem>
-          <FormGroup>
-            <FormControlLabel
-              control={
-                <Radio
-                  checked={value.competition === true}
-                  onClick={() => handleCompetitionToggle(true)}
-                />
-              }
-              label="コンクールメンバー"
-            />
-
-            <FormControlLabel
-              control={
-                <Radio
-                  checked={value.competition === false}
-                  onClick={() => handleCompetitionToggle(false)}
-                />
-              }
-              label="コンクールメンバー以外"
-            />
+        <ListItem disablePadding>
+          <FormGroup sx={{ width: "100%" }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>グループ</Typography>
+            {availableGroups.map((group) => (
+              <FormControlLabel
+                key={group.id}
+                control={
+                  <Checkbox
+                    checked={value.groupIds.includes(group.id)}
+                    onChange={() => handleGroupToggle(group.id)}
+                  />
+                }
+                label={group.displayName}
+              />
+            ))}
           </FormGroup>
-
         </ListItem>
       </List>
     </Box>

@@ -1,59 +1,49 @@
 import type { Dayjs } from 'dayjs';
-import type Member from 'src/api/member';
-import type { MembershipStatusPeriod } from 'src/api/member';
 
 import { toast } from 'sonner';
 import { ZodError } from 'zod';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
-import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import { jaJP } from '@mui/x-date-pickers/locales';
+import InputAdornment from '@mui/material/InputAdornment';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import {
-  Dialog,
-  Select,
-  InputLabel,
-  DialogTitle,
-  FormControl,
-  DialogActions,
-  DialogContent,
-  FormHelperText,
-} from '@mui/material';
+import { Dialog, FormLabel, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
 import { APIError } from 'src/abc/api-error';
-import MembershipStatus from 'src/api/member-status';
-import { MembershipStatusPeriodPostSchemaFront } from 'src/api/member';
 
+import PreCheck, { preCheckPostSchema } from '../../api/pre-check';
 
 type Props = {
   open: boolean;
   setOpen: (open: boolean) => void;
-  member: Member;
-  statusPeriods: MembershipStatusPeriod[] | undefined;
-  setStatusPeriods: React.Dispatch<MembershipStatusPeriod[] | undefined>;
+  setPreChecks: React.Dispatch<React.SetStateAction<PreCheck[] | null>>;
 };
 
 const initialErrorMsg = {
-  statusId: '',
   startDate: '',
   endDate: '',
+  description: '',
+  editDeadlineDays: '',
 };
 
-export function StatusPeriodAddDialog({ open, setOpen, member, statusPeriods, setStatusPeriods }: Props) {
-  const [membershipStatuses, setMembershipStatuses] = useState<MembershipStatus[] | null>(null);
-
-  const [statusId, setStatusId] = useState<string>('');
+export function PreCheckAddDialog({ open, setOpen, setPreChecks }: Props) {
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
+  const [description, setDescription] = useState<string>('');
+  const [editDeadlineDays, setEditDeadlineDays] = useState<number>(0);
 
   const [errorMsg, setErrorMsg] = useState({ ...initialErrorMsg });
 
   const reset = () => {
-    setStatusId('');
+    setStartDate(null);
+    setEndDate(null);
+    setDescription("");
+    setEditDeadlineDays(0);
     resetErrorMsg();
   };
 
@@ -69,18 +59,13 @@ export function StatusPeriodAddDialog({ open, setOpen, member, statusPeriods, se
   const handleSubmit = async () => {
     resetErrorMsg();
     try {
-      const parsedMember = MembershipStatusPeriodPostSchemaFront.parse({
-        statusId,
-        startDate,
-        endDate,
-      });
-
+      const body = preCheckPostSchema.parse({ startDate, endDate, description, editDeadlineDays });
       handleClose();
 
-      const result = await member.createStatus(parsedMember);
+      const p = await PreCheck.create(body);
+      setPreChecks((prev): PreCheck[] => [...prev!, p]);
 
-      if (result) toast.success('追加しました');
-      setStatusPeriods([...statusPeriods!, result]);
+      toast.success('作成しました');
     } catch (e) {
       if (e instanceof ZodError) {
         const _errorMsg = e.errors.reduce(
@@ -97,16 +82,9 @@ export function StatusPeriodAddDialog({ open, setOpen, member, statusPeriods, se
     }
   };
 
-  useEffect(() => {
-    (async () => {
-      const statuses = await MembershipStatus.getAll();
-      setMembershipStatuses(statuses);
-    })();
-  }, []);
-
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle>部員を登録</DialogTitle>
+      <DialogTitle>事前出欠フォームを作成</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <LocalizationProvider
           dateAdapter={AdapterDayjs}
@@ -115,24 +93,9 @@ export function StatusPeriodAddDialog({ open, setOpen, member, statusPeriods, se
         >
           <Grid container spacing={2}>
             <Grid size={{ xs: 12 }}>
-              <FormControl fullWidth>
-                <InputLabel>ステータス</InputLabel>
-                <Select
-                  label="ステータス"
-                  value={statusId}
-                  onChange={(e) => setStatusId(e.target.value)}
-                  error={!!errorMsg.statusId}
-                >
-                  {membershipStatuses?.map((p) => (
-                    <MenuItem value={p.id} key={p.id}>
-                      {p.displayName}
-                    </MenuItem>
-                  ))}
-                  <FormHelperText>{errorMsg.statusId}</FormHelperText>
-                </Select>
-              </FormControl>
+              <FormLabel>期間</FormLabel>
             </Grid>
-            <Grid size={{ xs: 6 }}>
+            <Grid size={{ xs: 5.5 }}>
               <DatePicker
                 label="開始日"
                 value={startDate}
@@ -148,13 +111,19 @@ export function StatusPeriodAddDialog({ open, setOpen, member, statusPeriods, se
                 format="YYYY/MM/DD"
               />
             </Grid>
-            <Grid size={{ xs: 6 }}>
+            <Grid
+              size={{ xs: 1 }}
+              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              ～
+            </Grid>
+            <Grid size={{ xs: 5.5 }}>
               <DatePicker
                 label="終了日"
                 value={endDate}
                 onChange={(newValue) => setEndDate(newValue)}
                 slotProps={{
-                  textField: { helperText: errorMsg.startDate },
+                  textField: { helperText: errorMsg.endDate },
                   calendarHeader: { format: 'YYYY年M月' },
                   actionBar: { actions: ['today', 'accept'] },
                   toolbar: { toolbarFormat: 'M月D日' },
@@ -162,6 +131,36 @@ export function StatusPeriodAddDialog({ open, setOpen, member, statusPeriods, se
                 views={['year', 'month', 'day']}
                 sx={{ width: '100%' }}
                 format="YYYY/MM/DD"
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                label="編集許可"
+                variant="outlined"
+                fullWidth
+                onChange={(e) => setEditDeadlineDays(Number(e.target.value))}
+                value={editDeadlineDays.toString()}
+                error={!!errorMsg.editDeadlineDays}
+                helperText={errorMsg.editDeadlineDays}
+                type="number"
+                slotProps={{
+                  input: {
+                    endAdornment: <InputAdornment position="end">日前の予定まで</InputAdornment>,
+                  },
+                }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                label="説明"
+                variant="outlined"
+                fullWidth
+                multiline
+                rows={2}
+                onChange={(e) => setDescription(e.target.value)}
+                value={description}
+                error={!!errorMsg.description}
+                helperText={errorMsg.description}
               />
             </Grid>
           </Grid>
@@ -172,7 +171,7 @@ export function StatusPeriodAddDialog({ open, setOpen, member, statusPeriods, se
           キャンセル
         </Button>
         <Button variant="contained" color="inherit" onClick={handleSubmit}>
-          登録
+          作成
         </Button>
       </DialogActions>
     </Dialog>

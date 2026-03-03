@@ -125,13 +125,18 @@ export function UserView() {
                     onSort={table.onSort}
                     onSelectAllRows={handleSelectAllRows}
                     headLabel={[
-                      { id: 'nameKana', label: '名前' },
-                      { id: 'groups' , label: 'グループ', sortable: false },
                       { id: 'part', label: 'パート' },
-                      { id: 'role', label: '役職' },
                       { id: 'generation', label: '学年' },
+                      { id: 'nameKana', label: '名前' },
+                      { id: 'groups', label: 'グループ', sortable: false },
+                      { id: 'role', label: '役職' },
                       { id: 'email', label: 'メールアドレス' },
-                      { id: 'pariticipationInfo', label: '参加情報', sortable: false, align: 'center' },
+                      {
+                        id: 'pariticipationInfo',
+                        label: '参加情報',
+                        sortable: false,
+                        align: 'center',
+                      },
                       { id: '' },
                     ]}
                   />
@@ -168,7 +173,7 @@ export function UserView() {
           <Loading />
         )}
       </Card>
-      <MemberAddDialog open={addOpen} setOpen={setAddOpen} setGroups={setMembers} />
+      <MemberAddDialog open={addOpen} setOpen={setAddOpen} setMembers={setMembers} />
     </DashboardContent>
   );
 }

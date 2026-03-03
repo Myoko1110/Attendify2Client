@@ -42,7 +42,6 @@ const MemberPostSchema = z.object({
   generation: z.number().min(1, '必須項目です'),
   lectureDay: z.string().array().transform((days) => days.map(DayOfWeek.valueOf)),
   isCompetitionMember: z.boolean(),
-  isTemporarilyRetired: z.boolean(),
 });
 
 
@@ -65,7 +64,6 @@ export function MemberEditDialog({ member, open, setOpen, setGroups }: Props) {
   const [email, setEmail] = useState(member.email || "");
   const [lectureDay, setLectureDay] = useState<string[]>(member.lectureDay.map((w) => w.value));
   const [isCompetitionMember, setIsCompetitionMember] = useState(member.isCompetitionMember);
-  const [isTemporarilyRetired, setIsTemporarilyRetired] = useState(member.isTemporarilyRetired);
 
   const [errorMsg, setErrorMsg] = useState({ ...initialErrorMsg });
 
@@ -103,7 +101,6 @@ export function MemberEditDialog({ member, open, setOpen, setGroups }: Props) {
         generation: generation ? Number(generation) : 0,
         lectureDay,
         isCompetitionMember,
-        isTemporarilyRetired,
       });
 
       handleClose();

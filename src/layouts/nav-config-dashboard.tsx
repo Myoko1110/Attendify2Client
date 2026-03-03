@@ -30,15 +30,21 @@ export const navData = [
     icon: <Iconify icon="solar:user-bold" />,
   },
   {
+    title: '予定',
+    path: '/schedule',
+    icon: <Iconify icon="solar:calendar-bold" />,
+  },
+  {
     title: 'グループ',
     path: '/group',
     icon: <Iconify icon="solar:users-group-two-rounded-bold" />,
   },
   {
-    title: '予定',
-    path: '/schedule',
-    icon: <Iconify icon="solar:calendar-bold" />,
+    title: '事前出欠',
+    path: '/pre-check',
+    icon: <Iconify icon="solar:history-bold" />,
   },
+
   // {
   //   title: '設定',
   //   path: '/settings',

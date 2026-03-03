@@ -21,9 +21,8 @@ import {
 import { useGrade } from 'src/hooks/grade';
 
 import Schedule from 'src/api/schedule';
+import { APIError } from 'src/abc/api-error';
 import ScheduleType from 'src/abc/schedule-type';
-
-import { APIError } from '../../abc/api-error';
 
 type Props = {
   open: boolean;
@@ -239,7 +238,7 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
           キャンセル
         </Button>
         <Button variant="contained" color="inherit" onClick={handleSubmit}>
-          保存
+          追加
         </Button>
       </DialogActions>
     </Dialog>

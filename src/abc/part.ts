@@ -73,6 +73,10 @@ export default class Part {
     return this.score - other.score;
   }
 
+  equals(other: Part): boolean {
+    return this.value === other.value;
+  }
+
   constructor(
     public value: string,
     public jp: string,

@@ -19,7 +19,10 @@ export const GroupPage = lazy(() => import('src/pages/group'));
 export const InputPage = lazy(() => import('src/pages/input'));
 export const SchedulePage = lazy(() => import('src/pages/schedule'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
+export const PreCheckPage = lazy(() => import('src/pages/pre-check'));
+export const PreCheckFormPage = lazy(() => import('src/pages/pre-check-form'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
+export const Page403 = lazy(() => import('src/pages/page-forbidden'));
 
 const renderFallback = () => (
   <Box
@@ -44,11 +47,11 @@ const renderFallback = () => (
 export const routesSection: RouteObject[] = [
   {
     element: (
-      <AuthLoader fallback={renderFallback()}>
+      <AuthLoader fallback={renderFallback()} requireDashboardAccess>
         <DashboardLayout>
-            <Suspense fallback={renderFallback()}>
-              <Outlet />
-            </Suspense>
+          <Suspense fallback={renderFallback()}>
+            <Outlet />
+          </Suspense>
         </DashboardLayout>
       </AuthLoader>
     ),
@@ -58,7 +61,23 @@ export const routesSection: RouteObject[] = [
       { path: 'group', element: <GroupPage /> },
       { path: 'schedule', element: <SchedulePage /> },
       { path: 'input', element: <InputPage /> },
+      {path: 'pre-check', element: <PreCheckPage />},
     ],
+  },
+  {
+    path: 'pre-check/form',
+    element: (
+      <AuthLoader fallback={renderFallback()} redirect>
+        <AuthLayout
+          slotProps={{
+            content: { sx: { width: '100%', maxWidth: '1200px' } },
+            main: { sx: { px: '12px!important' } },
+          }}
+        >
+          <PreCheckFormPage />
+        </AuthLayout>
+      </AuthLoader>
+    ),
   },
   {
     path: 'login',
@@ -67,6 +86,10 @@ export const routesSection: RouteObject[] = [
         <SignInPage />
       </AuthLayout>
     ),
+  },
+  {
+    path: '403',
+    element: <Page403 />,
   },
   {
     path: '404',

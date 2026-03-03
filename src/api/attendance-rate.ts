@@ -29,7 +29,6 @@ export class AttendanceRate {
       const result = await axios.get(`/attendance/rate`);
       return AttendanceRate.fromSchema(AttendanceRatesSchema.parse(result.data));
     } catch (e) {
-      console.log(e);
       throw APIError.fromError(e);
     }
   }

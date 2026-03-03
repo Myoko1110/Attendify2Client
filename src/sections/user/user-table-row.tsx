@@ -94,6 +94,10 @@ export const UserTableRow = memo(function UserTableRow({
           <Checkbox disableRipple checked={selected} onChange={handleSelectRow} />
         </TableCell>
 
+        <TableCell>{row.part.enShort}</TableCell>
+
+        <TableCell>{grade && row.getGrade(grade)?.displayName}</TableCell>
+
         <TableCell component="th" scope="row">
           <Stack flexDirection="row" gap={0.5}>
             {row.name}
@@ -102,17 +106,13 @@ export const UserTableRow = memo(function UserTableRow({
 
         <TableCell>
           <Stack flexDirection="row" gap={0.5}>
-            {row.groups!.map((g) => (
+            {row.groups?.map((g) => (
               <Label key={g.id}>{g.displayName}</Label>
             ))}
           </Stack>
         </TableCell>
 
-        <TableCell>{row.part.enShort}</TableCell>
-
         <TableCell>{row.role?.displayName || '-'}</TableCell>
-
-        <TableCell>{grade && row.getGrade(grade)?.displayName}</TableCell>
 
         <TableCell>{row.email}</TableCell>
 
@@ -128,7 +128,7 @@ export const UserTableRow = memo(function UserTableRow({
               </Label>
             ) : (
               <WeeklyParticipationCell
-                weeklyParticipation={row.weeklyParticipations!}
+                weeklyParticipation={row.weeklyParticipations ?? []}
                 onClick={() => setOpenParticipation(true)}
               />
             )}
@@ -148,7 +148,7 @@ export const UserTableRow = memo(function UserTableRow({
             setStatusPeriods={setStatusPeriods}
           />
           <Box sx={{ p: 2, display: 'flex', gap: 1 }}>
-            {row.weeklyParticipations!.map((wp, index) => (
+            {row.weeklyParticipations?.map((wp, index) => (
               <WeeklyParticipationEditCell key={index} wp={wp} member={row} />
             ))}
           </Box>
