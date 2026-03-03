@@ -22,6 +22,7 @@ import type { WorkspacesPopoverProps } from '../components/workspaces-popover';
 
 export type NavContentProps = {
   data: NavItem[];
+  bottomData?: NavItem[];
   slots?: {
     topArea?: React.ReactNode;
     bottomArea?: React.ReactNode;
@@ -33,6 +34,7 @@ export type NavContentProps = {
 export function NavDesktop({
   sx,
   data,
+  bottomData,
   slots,
   workspaces,
   layoutQuery,
@@ -59,7 +61,7 @@ export function NavDesktop({
         ...sx,
       }}
     >
-      <NavContent data={data} slots={slots} workspaces={workspaces} />
+      <NavContent data={data} bottomData={bottomData} slots={slots} workspaces={workspaces} />
     </Box>
   );
 }
@@ -69,6 +71,7 @@ export function NavDesktop({
 export function NavMobile({
   sx,
   data,
+  bottomData,
   open,
   slots,
   onClose,
@@ -97,15 +100,61 @@ export function NavMobile({
         },
       }}
     >
-      <NavContent data={data} slots={slots} workspaces={workspaces} />
+      <NavContent data={data} bottomData={bottomData} slots={slots} workspaces={workspaces} />
     </Drawer>
   );
 }
 
 // ----------------------------------------------------------------------
 
-export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
+export function NavContent({ data, bottomData, slots, workspaces, sx }: NavContentProps) {
   const pathname = usePathname();
+
+  const renderNavItems = (items: NavItem[]) =>
+    items.map((item) => {
+      const isActived = item.path === pathname;
+
+      return (
+        <ListItem disableGutters disablePadding key={item.title}>
+          <ListItemButton
+            disableGutters
+            component={RouterLink}
+            href={item.path}
+            sx={[
+              (theme) => ({
+                pl: 2,
+                py: 1,
+                gap: 2,
+                pr: 1.5,
+                borderRadius: 0.75,
+                typography: 'body2',
+                fontWeight: 'fontWeightMedium',
+                color: theme.palette.text.secondary,
+                minHeight: 44,
+                ...(isActived && {
+                  fontWeight: 'fontWeightSemiBold',
+                  color: theme.palette.primary.main,
+                  bgcolor: varAlpha(theme.palette.primary.lighterChannel, 0.08),
+                  '&:hover': {
+                    bgcolor: varAlpha(theme.palette.primary.lighterChannel, 0.16),
+                  },
+                }),
+              }),
+            ]}
+          >
+            <Box component="span" sx={{ width: 24, height: 24 }}>
+              {item.icon}
+            </Box>
+
+            <Box component="span" sx={{ flexGrow: 1 }}>
+              {item.title}
+            </Box>
+
+            {item.info && item.info}
+          </ListItemButton>
+        </ListItem>
+      );
+    });
 
   return (
     <>
@@ -115,7 +164,18 @@ export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
 
       {/*<WorkspacesPopover data={workspaces} sx={{ my: 2 }} />*/}
 
-      <Scrollbar fillContent sx={{ my: 4 }}>
+      <Scrollbar
+        fillContent
+        sx={{ my: 4 }}
+        slotProps={{
+          contentSx: {
+            display: 'flex',
+            flexDirection: 'column',
+            flex: '1 1 auto',
+            minHeight: '100%',
+          },
+        }}
+      >
         <Box
           component="nav"
           sx={[
@@ -123,6 +183,8 @@ export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
               display: 'flex',
               flex: '1 1 auto',
               flexDirection: 'column',
+              justifyContent: 'space-between',
+              minHeight: '100%',
             },
             ...(Array.isArray(sx) ? sx : [sx]),
           ]}
@@ -135,51 +197,22 @@ export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
               flexDirection: 'column',
             }}
           >
-            {data.map((item) => {
-              const isActived = item.path === pathname;
-
-              return (
-                <ListItem disableGutters disablePadding key={item.title}>
-                  <ListItemButton
-                    disableGutters
-                    component={RouterLink}
-                    href={item.path}
-                    sx={[
-                      (theme) => ({
-                        pl: 2,
-                        py: 1,
-                        gap: 2,
-                        pr: 1.5,
-                        borderRadius: 0.75,
-                        typography: 'body2',
-                        fontWeight: 'fontWeightMedium',
-                        color: theme.palette.text.secondary,
-                        minHeight: 44,
-                        ...(isActived && {
-                          fontWeight: 'fontWeightSemiBold',
-                          color: theme.palette.primary.main,
-                          bgcolor: varAlpha(theme.palette.primary.lighterChannel, 0.08),
-                          '&:hover': {
-                            bgcolor: varAlpha(theme.palette.primary.lighterChannel, 0.16),
-                          },
-                        }),
-                      }),
-                    ]}
-                  >
-                    <Box component="span" sx={{ width: 24, height: 24 }}>
-                      {item.icon}
-                    </Box>
-
-                    <Box component="span" sx={{ flexGrow: 1 }}>
-                      {item.title}
-                    </Box>
-
-                    {item.info && item.info}
-                  </ListItemButton>
-                </ListItem>
-              );
-            })}
+            {renderNavItems(data)}
           </Box>
+
+          {bottomData && bottomData.length > 0 && (
+            <Box
+                component="ul"
+                sx={{
+                  gap: 0.5,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  mt: 2,
+                }}
+              >
+                {renderNavItems(bottomData)}
+              </Box>
+          )}
         </Box>
       </Scrollbar>
 

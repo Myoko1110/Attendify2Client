@@ -61,7 +61,6 @@ export default class PreAttendance {
         PreAttendance.fromSchema(data),
       );
     } catch (e) {
-      console.log(e);
       throw APIError.fromError(e);
     }
   }

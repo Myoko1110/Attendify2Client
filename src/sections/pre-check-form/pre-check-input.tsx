@@ -81,6 +81,8 @@ export function PreCheckInput({
   };
 
   const isTargetSchedule = (schedule: Schedule) => {
+    if (!schedule.isPreAttendanceTarget) return false;
+
     const statusPeriod = member.statusAt(schedule.date);
     const status = statusPeriod?.status;
     if (status && !status.isAttendanceTarget) {

@@ -34,8 +34,6 @@ export function SignInView() {
       const code = searchParams.get('code');
       const redirect = searchParams.get('redirect');
 
-      console.log(localStorage.getItem('auth_redirect'));
-
       // リダイレクト先をlocalStorageに保存
       if (redirect && !state && !code) {
         localStorage.setItem('auth_redirect', redirect);

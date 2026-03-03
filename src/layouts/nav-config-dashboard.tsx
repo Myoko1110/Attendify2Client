@@ -44,10 +44,12 @@ export const navData = [
     path: '/pre-check',
     icon: <Iconify icon="solar:history-bold" />,
   },
+];
 
-  // {
-  //   title: '設定',
-  //   path: '/settings',
-  //   icon: <Iconify icon="solar:settings-bold" />,
-  // }
+export const navDataBottom = [
+  {
+    title: '設定',
+    path: '/settings',
+    icon: <Iconify icon="solar:settings-bold" />,
+  },
 ];

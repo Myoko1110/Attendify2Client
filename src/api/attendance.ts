@@ -130,6 +130,17 @@ export default class Attendance {
       throw APIError.fromError(e);
     }
   }
+
+  static async downloadExcel(): Promise<Blob> {
+    try {
+      const result = await axios.get(`/attendance/export/excel`, {
+        responseType: 'blob',
+      });
+      return result.data;
+    } catch (e) {
+      throw APIError.fromError(e);
+    }
+  }
 }
 
 export const AttendanceSchema = z.object({
