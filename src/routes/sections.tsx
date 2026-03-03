@@ -63,7 +63,6 @@ export const routesSection: RouteObject[] = [
       { path: 'schedule', element: <SchedulePage /> },
       { path: 'input', element: <InputPage /> },
       { path: 'pre-check', element: <PreCheckPage /> },
-      { path: 'ic', element: <FelicaPage />},
     ],
   },
   {
@@ -77,6 +76,21 @@ export const routesSection: RouteObject[] = [
           }}
         >
           <PreCheckFormPage />
+        </AuthLayout>
+      </AuthLoader>
+    ),
+  },
+  {
+    path: 'ic',
+    element: (
+      <AuthLoader fallback={renderFallback()}>
+        <AuthLayout
+          slotProps={{
+            content: { sx: { width: '100%', maxWidth: '1200px' } },
+            main: { sx: { px: '12px!important' } },
+          }}
+        >
+          <FelicaPage />
         </AuthLayout>
       </AuthLoader>
     ),

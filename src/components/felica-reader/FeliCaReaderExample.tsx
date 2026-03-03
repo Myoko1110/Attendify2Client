@@ -1,4 +1,5 @@
-っぱimport React from 'react';
+import React from 'react';
+
 import { useFeliCaReader } from '../../felica';
 
 /**

@@ -45,6 +45,12 @@ export const navData = [
     icon: <Iconify icon="solar:history-bold" />,
   },
 
+  {
+    title: '交通系IC',
+    path: '/ic',
+    icon: <Iconify icon="solar:card-broken" />,
+  },
+
   // {
   //   title: '設定',
   //   path: '/settings',
