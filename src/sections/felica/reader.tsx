@@ -1,3 +1,7 @@
+import type { CardInfo } from 'src/felica';
+
+import { useRef, useState, useEffect } from 'react';
+
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
@@ -7,16 +11,41 @@ import Typography from '@mui/material/Typography';
 import AlertTitle from '@mui/material/AlertTitle';
 import IconButton from '@mui/material/IconButton';
 import CardContent from '@mui/material/CardContent';
-import CircularProgress from '@mui/material/CircularProgress';
+
+import Member from 'src/api/member';
+import { useFeliCaReader } from 'src/felica';
 
 import { Iconify } from 'src/components/iconify';
-
-import { useFeliCaReader } from '../../felica';
 
 /**
  * FeliCaカード読み取りコンポーネント
  */
 export function FeliCaReader() {
+  const [unknownMemberError, setUnknownMemberError] = useState(false);
+  const [gettingMember, setGettingMember] = useState(false);
+  const [currentMember, setCurrentMember] = useState<Member | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleRead = async (card: CardInfo) => {
+    // タイマーをリセット
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    setGettingMember(true);
+    const member = await Member.getByFelicaIdm({ felicaIdm: card.id });
+    setGettingMember(false);
+    setCurrentMember(member);
+    if (!member) {
+      setUnknownMemberError(true);
+    }
+  };
+
+  const handleCardRemoved = async () => {
+    setUnknownMemberError(false);
+    setCurrentMember(null);
+  };
+
   const {
     isConnected,
     isReading,
@@ -28,7 +57,24 @@ export function FeliCaReader() {
     startReading,
     stopReading,
     clearError,
-  } = useFeliCaReader();
+  } = useFeliCaReader({ onRead: handleRead, onCardRemoved: handleCardRemoved });
+
+  // 5分間カードが読み取られなかったら自動停止
+  useEffect(() => {
+    if (isReading) {
+      timeoutRef.current = setTimeout(() => {
+        stopReading();
+      }, 1000 * 60 * 5);
+    }
+
+    // クリーンアップ
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [isReading, stopReading]);
 
   const handleConnect = async () => {
     try {
@@ -66,26 +112,37 @@ export function FeliCaReader() {
         {!isConnected ? (
           <Button
             variant="contained"
-            color="primary"
+            color="inherit"
             size="large"
             onClick={handleConnect}
             disabled={!isAvailable}
-            startIcon={<Iconify icon="solar:restart-bold" />}
+            startIcon={<Iconify icon="solar:usb-bold" />}
           >
             FeliCaリーダーに接続
           </Button>
         ) : (
           <>
-            <Button
-              variant="contained"
-              color="warning"
-              size="large"
-              onClick={stopReading}
-              disabled={!isReading}
-              startIcon={<Iconify icon="mingcute:close-line" />}
-            >
-              読み取りを停止
-            </Button>
+            {isReading ? (
+              <Button
+                variant="outlined"
+                color="inherit"
+                size="large"
+                onClick={stopReading}
+                startIcon={<Iconify icon="solar:pause-bold" />}
+              >
+                読み取りを一時停止
+              </Button>
+            ) : (
+              <Button
+                variant="outlined"
+                color="inherit"
+                size="large"
+                onClick={startReading}
+                startIcon={<Iconify icon="solar:play-bold" />}
+              >
+                読み取りを再開
+              </Button>
+            )}
             <Button
               variant="contained"
               color="error"
@@ -99,65 +156,69 @@ export function FeliCaReader() {
         )}
       </Stack>
 
-      {isReading && !card && (
+      {isConnected && (
         <Card>
           <CardContent>
-            <Stack spacing={2} alignItems="center" py={3}>
-              <CircularProgress size={48} />
-              <Typography variant="body1" color="text.secondary">
-                待機中 - FeliCaリーダーにカードをかざしてください
-              </Typography>
+            <Stack spacing={2}>
+              <Stack spacing={2} alignItems="center" py={3}>
+                {isReading ? (
+                  <>
+                    <Typography variant="h3">待機中...</Typography>
+                    <Typography variant="body1" color="text.secondary">
+                      リーダーに交通系ICをかざしてください
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Typography variant="h3">休止中...</Typography>
+                    <Typography variant="body1" color="text.secondary">
+                      読み取りをするには再開ボタンを押して下さい
+                    </Typography>
+                  </>
+                )}
+              </Stack>
+
+              {isReading && card && (
+                <Alert
+                  severity="success"
+                  icon={<Iconify icon="solar:check-circle-bold" width={24} />}
+                  sx={{ '& .MuiAlert-message': { width: '100%' } }}
+                >
+                  <AlertTitle>カード検出</AlertTitle>
+                  {gettingMember && '取得中...'}
+                  {currentMember && `${currentMember.name}さんのカードを検出しました！`}
+                </Alert>
+              )}
+
+              {unknownMemberError && (
+                <Alert severity="error">
+                  <AlertTitle>登録されていないカードです</AlertTitle>
+                  {error}
+                </Alert>
+              )}
+
+              {error && !unknownMemberError && (
+                <Alert
+                  severity="error"
+                  onClose={clearError}
+                  action={
+                    <IconButton
+                      aria-label="close"
+                      color="inherit"
+                      size="small"
+                      onClick={clearError}
+                    >
+                      <Iconify icon="mingcute:close-line" />
+                    </IconButton>
+                  }
+                >
+                  <AlertTitle>エラー</AlertTitle>
+                  {error}
+                </Alert>
+              )}
             </Stack>
           </CardContent>
         </Card>
-      )}
-
-      {card && (
-        <Alert
-          severity="success"
-          icon={<Iconify icon="solar:check-circle-bold" width={24} />}
-          sx={{ '& .MuiAlert-message': { width: '100%' } }}
-        >
-          <AlertTitle>カード検出</AlertTitle>
-          <Stack spacing={1} mt={1}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                カードタイプ
-              </Typography>
-              <Typography variant="body2" fontWeight="medium">
-                {card.type}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                カードID
-              </Typography>
-              <Typography variant="body2" fontFamily="monospace">
-                {card.id}
-              </Typography>
-            </Box>
-          </Stack>
-        </Alert>
-      )}
-
-      {error && (
-        <Alert
-          severity="error"
-          onClose={clearError}
-          action={
-            <IconButton
-              aria-label="close"
-              color="inherit"
-              size="small"
-              onClick={clearError}
-            >
-              <Iconify icon="mingcute:close-line" />
-            </IconButton>
-          }
-        >
-          <AlertTitle>エラー</AlertTitle>
-          {error}
-        </Alert>
       )}
     </Stack>
   );

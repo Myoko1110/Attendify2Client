@@ -2,6 +2,13 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 
 import { FeliCaReader, type CardInfo } from './felica-reader';
 
+export interface UseFeliCaReaderOptions {
+  /** カードが読み取られたときのコールバック */
+  onRead?: (card: CardInfo) => void | Promise<void>;
+  /** カードが離れたときのコールバック */
+  onCardRemoved?: () => void | Promise<void>;
+}
+
 export interface UseFeliCaReaderReturn {
   /** 接続中かどうか */
   isConnected: boolean;
@@ -33,7 +40,16 @@ export interface UseFeliCaReaderReturn {
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { isConnected, card, connect, startReading, stopReading } = useFeliCaReader();
+ *   const { isConnected, card, connect, startReading, stopReading } = useFeliCaReader({
+ *     onRead: async (card) => {
+ *       console.log('カードが読み取られました:', card);
+ *       // 非同期処理も可能
+ *       await fetch('/api/attendance', { method: 'POST', body: JSON.stringify(card) });
+ *     },
+ *     onCardRemoved: async () => {
+ *       console.log('カードが離れました');
+ *     }
+ *   });
  *
  *   const handleConnect = async () => {
  *     await connect();
@@ -50,7 +66,9 @@ export interface UseFeliCaReaderReturn {
  * }
  * ```
  */
-export function useFeliCaReader(): UseFeliCaReaderReturn {
+export function useFeliCaReader(options?: UseFeliCaReaderOptions): UseFeliCaReaderReturn {
+  const { onRead, onCardRemoved } = options || {};
+
   const [isConnected, setIsConnected] = useState(false);
   const [isReading, setIsReading] = useState(false);
   const [card, setCard] = useState<CardInfo | null>(null);
@@ -59,6 +77,19 @@ export function useFeliCaReader(): UseFeliCaReaderReturn {
 
   const readerRef = useRef<FeliCaReader | null>(null);
   const stopFlagRef = useRef(false);
+  const onReadRef = useRef(onRead);
+  const onCardRemovedRef = useRef(onCardRemoved);
+  const previousCardIdRef = useRef<string | null>(null);
+
+  // onReadの最新の参照を保持
+  useEffect(() => {
+    onReadRef.current = onRead;
+  }, [onRead]);
+
+  // onCardRemovedの最新の参照を保持
+  useEffect(() => {
+    onCardRemovedRef.current = onCardRemoved;
+  }, [onCardRemoved]);
 
   /**
    * デバイスに接続
@@ -94,6 +125,7 @@ export function useFeliCaReader(): UseFeliCaReaderReturn {
 
     setIsConnected(false);
     setCard(null);
+    previousCardIdRef.current = null;
   }, []);
 
   /**
@@ -106,9 +138,35 @@ export function useFeliCaReader(): UseFeliCaReaderReturn {
     while (!stopFlagRef.current) {
       try {
         const detectedCard = await reader.readCard();
-        if (detectedCard && !stopFlagRef.current) {
-          setCard(detectedCard);
-          setError(null);
+        if (!stopFlagRef.current) {
+          // カードが検出された場合
+          if (detectedCard) {
+            const currentCardId = detectedCard.id;
+
+            // 新しいカードが検出された場合（前回と異なるカード、または初回）
+            if (previousCardIdRef.current !== currentCardId) {
+              setCard(detectedCard);
+              setError(null);
+              previousCardIdRef.current = currentCardId;
+
+              // onReadコールバックを実行
+              if (onReadRef.current) {
+                await onReadRef.current(detectedCard);
+              }
+            }
+          } else {
+            // カードが検出されなかった場合
+            // 前回カードがあった場合は、カードが離れたと判断
+            if (previousCardIdRef.current !== null) {
+              previousCardIdRef.current = null;
+              setCard(null);
+
+              // onCardRemovedコールバックを実行
+              if (onCardRemovedRef.current) {
+                await onCardRemovedRef.current();
+              }
+            }
+          }
         }
         // 少し待機
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -143,6 +201,7 @@ export function useFeliCaReader(): UseFeliCaReaderReturn {
   const stopReading = useCallback(() => {
     stopFlagRef.current = true;
     setIsReading(false);
+    previousCardIdRef.current = null;
   }, []);
 
   /**
@@ -159,6 +218,10 @@ export function useFeliCaReader(): UseFeliCaReaderReturn {
       if (detectedCard) {
         setCard(detectedCard);
         setError(null);
+        // onReadコールバックを実行
+        if (onReadRef.current) {
+          await onReadRef.current(detectedCard);
+        }
       }
       return detectedCard;
     } catch (err) {

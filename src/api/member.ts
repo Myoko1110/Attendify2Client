@@ -30,6 +30,7 @@ export default class Member {
     public role: Role,
     public lectureDay: DayOfWeek[],
     public isCompetitionMember: boolean,
+    public felicaIdm?: string | null,
     public groups?: Group[],
     public weeklyParticipations?: WeeklyParticipation[],
     public membershipStatusPeriods?: MembershipStatusPeriod[],
@@ -46,7 +47,7 @@ export default class Member {
       data.role,
       data.lectureDay,
       data.isCompetitionMember,
-
+      data.felicaIdm,
       data.groups ? Group.fromSchemaArray(data.groups) : undefined,
       data.weeklyParticipations ? data.weeklyParticipations : undefined,
       data.membershipStatusPeriods ? data.membershipStatusPeriods : undefined,
@@ -103,6 +104,30 @@ export default class Member {
     }
   }
 
+  static async getByFelicaIdm({
+    felicaIdm,
+    includeGroups = false,
+    includeWeeklyParticipation = false,
+    includeStatusPeriods = false,
+  }: {
+    felicaIdm: string;
+    includeGroups?: boolean;
+    includeWeeklyParticipation?: boolean;
+    includeStatusPeriods?: boolean;
+  }): Promise<Member | null> {
+    const params = new URLSearchParams();
+    if (includeGroups) params.append('include_groups', 'true');
+    if (includeWeeklyParticipation) params.append('include_weekly_participation', 'true');
+    if (includeStatusPeriods) params.append('include_status_periods', 'true');
+
+    try {
+      const result = await axios.get(`/member/idm/${encodeURI(felicaIdm)}?${params}`);
+      return result.data ? Member.fromSchema(MemberSchema.parse(result.data)) : null;
+    } catch (e) {
+      throw APIError.fromError(e);
+    }
+  }
+
   static async add(members: MemberArrayPost): Promise<boolean> {
     const body = MemberArrayPostSchema.parse(members);
 
@@ -150,6 +175,7 @@ export default class Member {
       const role = update.role || this.role;
       const lectureDay = update.lectureDay || this.lectureDay;
       const isCompetitionMember = update.isCompetitionMember || this.isCompetitionMember;
+      const felicaIdm = update.felicaIdm || this.felicaIdm;
 
       return new Member(
         this.id,
@@ -161,6 +187,7 @@ export default class Member {
         role,
         lectureDay,
         isCompetitionMember,
+        felicaIdm,
         this.groups,
         this.weeklyParticipations,
       );
@@ -342,6 +369,7 @@ export default class Member {
       this.role,
       this.lectureDay,
       this.isCompetitionMember,
+      this.felicaIdm,
       this.groups ? [...this.groups] : undefined,
       this.weeklyParticipations ? [...this.weeklyParticipations] : undefined,
       this.membershipStatusPeriods ? [...this.membershipStatusPeriods] : undefined,
@@ -375,6 +403,7 @@ export const MemberPostSchema = z.object({
   role: z.instanceof(Role).transform((role) => role.value),
   lectureDay: z.array(z.instanceof(DayOfWeek)).transform((data) => data.map((d) => d.value)),
   isCompetitionMember: z.boolean(),
+  felicaIdm: z.string().nullable(),
 });
 export const MemberArrayPostSchema = z.array(MemberPostSchema);
 
@@ -428,6 +457,7 @@ export const MemberSchema = z.object({
     .array(z.string())
     .transform((data) => data.map(DayOfWeek.valueOf).sort((a, b) => (a.num > b.num ? 1 : -1))),
   isCompetitionMember: z.boolean(),
+  felicaIdm: z.string().nullable(),
   groups: GroupSchema.array().nullish(),
   weeklyParticipations: WeeklyParticipationSchema.array().nullish(),
   membershipStatusPeriods: MembershipStatusPeriodSchema.array().nullish(),
