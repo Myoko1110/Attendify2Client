@@ -9,8 +9,8 @@ export default class MembershipStatus {
     public displayName: string,
     public isAttendanceTarget: boolean,
     public defaultAttendance: string | null,
-  ) {
-  }
+    public isPreAttendanceExcluded: boolean,
+  ) {}
 
   static fromSchema(data: MembershipStatusSchemaResult) {
     return new MembershipStatus(
@@ -18,6 +18,7 @@ export default class MembershipStatus {
       data.displayName,
       data.isAttendanceTarget,
       data.defaultAttendance,
+      data.isPreAttendanceExcluded,
     );
   }
 
@@ -34,8 +35,18 @@ export default class MembershipStatus {
     }
   }
 
-  static async create(displayName: string, isAttendanceTarget: boolean, defaultAttendance: string): Promise<MembershipStatus> {
-    const body = MembershipStatusPostSchema.parse({ displayName, isAttendanceTarget, defaultAttendance });
+  static async create(
+    displayName: string,
+    isAttendanceTarget: boolean,
+    defaultAttendance: string,
+    isPreAttendanceExcluded: boolean = false,
+  ): Promise<MembershipStatus> {
+    const body = MembershipStatusPostSchema.parse({
+      displayName,
+      isAttendanceTarget,
+      defaultAttendance,
+      isPreAttendanceExcluded,
+    });
 
     try {
       const result = await axios.post('/membership_status', body, {
@@ -63,6 +74,7 @@ export const MembershipStatusSchema = z.object({
   displayName: z.string(),
   isAttendanceTarget: z.boolean(),
   defaultAttendance: z.string().nullable(),
+  isPreAttendanceExcluded: z.boolean(),
 });
 export type MembershipStatusSchemaResult = z.infer<typeof MembershipStatusSchema>;
 
@@ -70,4 +82,5 @@ export const MembershipStatusPostSchema = z.object({
   displayName: z.string(),
   isAttendanceTarget: z.boolean(),
   defaultAttendance: z.string().nullable(),
+  isPreAttendanceExcluded: z.boolean(),
 });

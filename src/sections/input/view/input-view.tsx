@@ -237,7 +237,21 @@ export function InputView() {
                   label="日付"
                   slotProps={{
                     calendarHeader: { format: 'YYYY年M月' },
-                    actionBar: { actions: ['today', 'accept'] },
+                    actionBar: {
+                      actions: ['today', 'accept'],
+                      sx: {
+                        '.MuiButton-root': {
+                          borderColor: 'grey.900',
+                          borderWidth: 1,
+                          borderStyle: 'solid',
+                          color: 'black',
+                        },
+                        '& .MuiButton-root:last-child': {
+                          backgroundColor: 'grey.900',
+                          color: 'white',
+                        },
+                      },
+                    },
                     toolbar: { toolbarFormat: 'M月D日' },
                   }}
                   views={['year', 'month', 'day']}

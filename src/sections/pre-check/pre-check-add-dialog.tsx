@@ -9,13 +9,14 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import { jaJP } from '@mui/x-date-pickers/locales';
 import InputAdornment from '@mui/material/InputAdornment';
-import { LocalizationProvider } from '@mui/x-date-pickers';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DateTimePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { Dialog, FormLabel, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
 import { APIError } from 'src/abc/api-error';
 
+import { defaultTimezone } from '../../utils/format-time';
 import PreCheck, { preCheckPostSchema } from '../../api/pre-check';
 
 type Props = {
@@ -35,6 +36,7 @@ export function PreCheckAddDialog({ open, setOpen, setPreChecks }: Props) {
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const [description, setDescription] = useState<string>('');
+  const [deadline, setDeadline] = useState<Dayjs | null>(null);
   const [editDeadlineDays, setEditDeadlineDays] = useState<number>(0);
 
   const [errorMsg, setErrorMsg] = useState({ ...initialErrorMsg });
@@ -43,6 +45,7 @@ export function PreCheckAddDialog({ open, setOpen, setPreChecks }: Props) {
     setStartDate(null);
     setEndDate(null);
     setDescription("");
+    setDeadline(null);
     setEditDeadlineDays(0);
     resetErrorMsg();
   };
@@ -59,7 +62,7 @@ export function PreCheckAddDialog({ open, setOpen, setPreChecks }: Props) {
   const handleSubmit = async () => {
     resetErrorMsg();
     try {
-      const body = preCheckPostSchema.parse({ startDate, endDate, description, editDeadlineDays });
+      const body = preCheckPostSchema.parse({ startDate, endDate, description, deadline, editDeadlineDays });
       handleClose();
 
       const p = await PreCheck.create(body);
@@ -103,7 +106,21 @@ export function PreCheckAddDialog({ open, setOpen, setPreChecks }: Props) {
                 slotProps={{
                   textField: { helperText: errorMsg.startDate },
                   calendarHeader: { format: 'YYYY年M月' },
-                  actionBar: { actions: ['today', 'accept'] },
+                  actionBar: {
+                    actions: ['today', 'accept'],
+                    sx: {
+                      '.MuiButton-root': {
+                        borderColor: 'grey.900',
+                        borderWidth: 1,
+                        borderStyle: 'solid',
+                        color: 'black',
+                      },
+                      '& .MuiButton-root:last-child': {
+                        backgroundColor: 'grey.900',
+                        color: 'white',
+                      },
+                    },
+                  },
                   toolbar: { toolbarFormat: 'M月D日' },
                 }}
                 views={['year', 'month', 'day']}
@@ -125,12 +142,57 @@ export function PreCheckAddDialog({ open, setOpen, setPreChecks }: Props) {
                 slotProps={{
                   textField: { helperText: errorMsg.endDate },
                   calendarHeader: { format: 'YYYY年M月' },
-                  actionBar: { actions: ['today', 'accept'] },
+                  actionBar: {
+                    actions: ['today', 'accept'],
+                    sx: {
+                      '.MuiButton-root': {
+                        borderColor: 'grey.900',
+                        borderWidth: 1,
+                        borderStyle: 'solid',
+                        color: 'black',
+                      },
+                      '& .MuiButton-root:last-child': {
+                        backgroundColor: 'grey.900',
+                        color: 'white',
+                      },
+                    },
+                  },
                   toolbar: { toolbarFormat: 'M月D日' },
                 }}
                 views={['year', 'month', 'day']}
                 sx={{ width: '100%' }}
                 format="YYYY/MM/DD"
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <DateTimePicker
+                label="締切日"
+                value={deadline}
+                onChange={(newValue) => setDeadline(newValue)}
+                slotProps={{
+                  textField: { helperText: errorMsg.endDate },
+                  calendarHeader: { format: 'YYYY年M月' },
+                  actionBar: {
+                    actions: ['today', 'accept'],
+                    sx: {
+                      '.MuiButton-root': {
+                        borderColor: 'grey.900',
+                        borderWidth: 1,
+                        borderStyle: 'solid',
+                        color: 'black',
+                      },
+                      '& .MuiButton-root:last-child': {
+                        backgroundColor: 'grey.900',
+                        color: 'white',
+                      },
+                    },
+                  },
+                  toolbar: { toolbarFormat: 'M月D日' },
+                }}
+                views={['year', 'month', 'day', 'hours', 'minutes']}
+                sx={{ width: '100%' }}
+                format="YYYY/MM/DD HH:mm:ss"
+                timezone={defaultTimezone}
               />
             </Grid>
             <Grid size={{ xs: 12 }}>
