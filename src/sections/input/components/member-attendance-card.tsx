@@ -6,6 +6,7 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
+import Tooltip from '@mui/material/Tooltip';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
@@ -19,6 +20,8 @@ import {
 type MemberAttendanceCardProps = {
   member: Member;
   attendance: string;
+  isFromPreAttendance?: boolean;
+  preAttendanceReason?: string | null;
   suppressHover: boolean;
   isPickerOpen: boolean;
   isFreeInputOpen: boolean;
@@ -40,6 +43,8 @@ type MemberAttendanceCardProps = {
 export function MemberAttendanceCard({
   member,
   attendance,
+  isFromPreAttendance = false,
+  preAttendanceReason = null,
   suppressHover,
   isPickerOpen,
   isFreeInputOpen,
@@ -58,7 +63,44 @@ export function MemberAttendanceCard({
   onFreeInputCancel,
 }: MemberAttendanceCardProps) {
   return (
-    <Card sx={{ p: 2, textAlign: 'center' }}>
+    <Card sx={{ p: 2, textAlign: 'center', position: 'relative' }}>
+      {isFromPreAttendance && (
+        <Tooltip
+          title={
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                事前出欠から取得
+              </Typography>
+              {preAttendanceReason && (
+                <Typography variant="caption" sx={{ display: 'block' }}>
+                  理由: {preAttendanceReason}
+                </Typography>
+              )}
+            </Box>
+          }
+          arrow
+          placement="top"
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              bgcolor: 'info.main',
+              color: 'white',
+              px: 1,
+              py: 0.5,
+              borderRadius: .75,
+              fontSize: '0.6rem',
+              fontWeight: 'bold',
+              zIndex: 1,
+              cursor: 'help',
+            }}
+          >
+            事前出欠
+          </Box>
+        </Tooltip>
+      )}
       <Typography variant="h6" gutterBottom>
         {member.name}
       </Typography>
@@ -84,6 +126,7 @@ export function MemberAttendanceCard({
       >
         {attendance}
       </Button>
+
 
       <Popover
         open={isPickerOpen}

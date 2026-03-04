@@ -88,6 +88,9 @@ export function PreCheckInput({
     if (status && !status.isAttendanceTarget) {
       return false;
     }
+    if (status && status.isPreAttendanceExcluded) {
+      return false;
+    }
 
     const groups = member.groups ?? [];
     const hasGroup = (ids: readonly string[]) =>

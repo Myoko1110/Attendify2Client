@@ -45,15 +45,18 @@ export default class PreAttendance {
     member,
     month,
     preCheck,
+    date,
   }: {
     member?: Member;
     month?: Month;
     preCheck?: PreCheck;
+    date?: Dayjs;
   } = {}): Promise<PreAttendance[]> {
     const params = new URLSearchParams();
     if (member) params.append('member_id', member.id);
     if (month) params.append('month', month.toString());
     if (preCheck) params.append('pre_check_id', preCheck.id);
+    if (date) params.append('date', date.format('YYYY-MM-DD'));
 
     try {
       const result = await axios.get(`/pre-check/attendances`, { params });

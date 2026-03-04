@@ -46,7 +46,7 @@ export function AuthLoader({
         setIsLoading(false);
       } else {
         try {
-          const self = await Member.getSelf({ includeGroups: true });
+          const self = await Member.getSelf({ includeGroups: true, includeStatusPeriods: true });
 
           // 権限チェック
           if (requireDashboardAccess && grade) {

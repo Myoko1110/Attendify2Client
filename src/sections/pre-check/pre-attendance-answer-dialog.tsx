@@ -2,7 +2,6 @@ import 'dayjs/locale/ja';
 
 import type Member from 'src/api/member';
 import type Schedule from 'src/api/schedule';
-import type PreCheck from 'src/api/pre-check';
 import type PreAttendance from 'src/api/pre-attendance';
 
 import Box from '@mui/material/Box';
@@ -35,26 +34,16 @@ type Props = {
   open: boolean;
   setOpen: (open: boolean) => void;
   member: Member;
-  preCheck: PreCheck;
-  schedules: Schedule[];
+  schedulesInRange: Schedule[];
+  isTargetSchedule: (schedule: Schedule, member: Member) => boolean;
   preAttendances: PreAttendance[];
 };
 
-export function PreAttendanceAnswerDialog({ open, setOpen, member, preCheck, schedules, preAttendances }: Props) {
+export function PreAttendanceAnswerDialog({ open, setOpen, member, schedulesInRange, isTargetSchedule, preAttendances }: Props) {
   const handleClose = () => {
     setOpen(false);
   };
 
-  // PreCheckの期間内のスケジュールを取得
-  const schedulesInRange = schedules.filter((schedule) => {
-    const scheduleDate = schedule.dateOnly.toDayjs();
-    const startDate = preCheck.startDate.toDayjs();
-    const endDate = preCheck.endDate.toDayjs();
-    return (
-      (scheduleDate.isAfter(startDate) || scheduleDate.isSame(startDate, 'day')) &&
-      (scheduleDate.isBefore(endDate) || scheduleDate.isSame(endDate, 'day'))
-    );
-  });
 
   // メンバーのPreAttendanceをマップ化
   const preAttendanceMap = new Map(
@@ -95,6 +84,7 @@ export function PreAttendanceAnswerDialog({ open, setOpen, member, preCheck, sch
             {schedulesInRange.map((schedule) => {
               const dateKey = schedule.dateOnly.toString();
               const preAttendance = preAttendanceMap.get(dateKey);
+              const isTarget = isTargetSchedule(schedule, member);
 
               return (
                 <Card key={dateKey} variant="outlined" sx={{ p: 2 }}>
@@ -128,7 +118,19 @@ export function PreAttendanceAnswerDialog({ open, setOpen, member, preCheck, sch
                           回答
                         </Typography>
                         <Box>
-                          {preAttendance ? (
+                          {!isTarget ? (
+                            <Chip
+                              label="対象外"
+                              color="default"
+                              sx={{
+                                fontWeight: 'bold',
+                                minWidth: 70,
+                                fontSize: '0.95rem',
+                                height: 36,
+                                borderRadius: 1,
+                              }}
+                            />
+                          ) : preAttendance ? (
                             <Chip
                               label={preAttendance.attendance}
                               color={getAttendanceColor(preAttendance.attendance) as any}

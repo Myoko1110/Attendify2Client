@@ -44,6 +44,9 @@ export function InputView() {
     schedules,
     attendanceMap,
     setAttendanceMap,
+    preAttendanceSourceMap,
+    setPreAttendanceSourceMap,
+    preAttendanceReasonMap,
     groupedMembers,
     toggleAttendance,
     handleSubmit,
@@ -115,6 +118,11 @@ export function InputView() {
       newMap.set(memberId, status);
       return newMap;
     });
+    setPreAttendanceSourceMap((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(memberId, false);
+      return newMap;
+    });
     closePicker();
   };
 
@@ -122,6 +130,11 @@ export function InputView() {
     setAttendanceMap((prev) => {
       const newMap = new Map(prev);
       newMap.set(memberId, value);
+      return newMap;
+    });
+    setPreAttendanceSourceMap((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(memberId, false);
       return newMap;
     });
   };
@@ -190,6 +203,8 @@ export function InputView() {
                               <MemberAttendanceCard
                                 member={member}
                                 attendance={attendance}
+                                isFromPreAttendance={preAttendanceSourceMap.get(member.id) || false}
+                                preAttendanceReason={preAttendanceReasonMap.get(member.id)}
                                 suppressHover={suppressHoverMemberId === member.id}
                                 isPickerOpen={
                                   Boolean(pickerAnchorEl) && pickerMemberId === member.id
