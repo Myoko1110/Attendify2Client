@@ -32,6 +32,7 @@ const initialErrorMsg = {
   endDate: '',
   description: '',
   editDeadlineDays: '',
+  deadline: '',
 };
 
 export function PreCheckEditDialog({ preCheck, open, setOpen, setPreChecks }: Props) {
@@ -42,6 +43,7 @@ export function PreCheckEditDialog({ preCheck, open, setOpen, setPreChecks }: Pr
   const [editDeadlineDays, setEditDeadlineDays] = useState<number>(preCheck.editDeadlineDays);
 
   const [errorMsg, setErrorMsg] = useState({ ...initialErrorMsg });
+  console.log(deadline)
 
   const reset = useCallback(() => {
     setStartDate(preCheck.startDate.toDayjs());
@@ -175,27 +177,13 @@ export function PreCheckEditDialog({ preCheck, open, setOpen, setPreChecks }: Pr
             </Grid>
             <Grid size={{ xs: 12 }}>
               <DateTimePicker
-                label="締切日"
+                label="締切日時"
                 value={deadline}
                 onChange={(newValue) => setDeadline(newValue)}
                 slotProps={{
-                  textField: { helperText: errorMsg.endDate },
+                  field: { clearable: true },
+                  textField: { helperText: errorMsg.deadline },
                   calendarHeader: { format: 'YYYY年M月' },
-                  actionBar: {
-                    actions: ['today', 'accept'],
-                    sx: {
-                      '.MuiButton-root': {
-                        borderColor: 'grey.900',
-                        borderWidth: 1,
-                        borderStyle: 'solid',
-                        color: 'black',
-                      },
-                      '& .MuiButton-root:last-child': {
-                        backgroundColor: 'grey.900',
-                        color: 'white',
-                      },
-                    },
-                  },
                   toolbar: { toolbarFormat: 'M月D日' },
                 }}
                 views={['year', 'month', 'day', 'hours', 'minutes']}
