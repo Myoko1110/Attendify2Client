@@ -1,5 +1,4 @@
 import type { Dayjs } from 'dayjs';
-import type { APIError } from 'src/abc/api-error';
 
 import dayjs from 'dayjs';
 import { toast } from 'sonner';
@@ -18,6 +17,7 @@ import Part from 'src/abc/part';
 import Member from 'src/api/member';
 import Schedule from 'src/api/schedule';
 import Attendance from 'src/api/attendance';
+import { APIError } from 'src/abc/api-error';
 import PreAttendance from 'src/api/pre-attendance';
 import { AttendanceRate } from 'src/api/attendance-rate';
 
@@ -76,8 +76,14 @@ export const AttendanceCellEditor = ({
 
   const [original, setOriginal] = useState('');
   const [update, setUpdate] = useState(false);
+  
+  const handleReset = () => {
+    setValue('');
+    setReasonValue("");
+  }
 
   const handleSave = () => {
+    handleReset();
     if (value.trim()) {
       onSave(value.trim(), update);
       onClose();
@@ -85,6 +91,7 @@ export const AttendanceCellEditor = ({
   };
 
   const handleClose = () => {
+    handleReset();
     if (value !== original) {
       handleSave();
     } else {
@@ -97,7 +104,7 @@ export const AttendanceCellEditor = ({
   }
 
   const handlePresetClick = (preset: string) => {
-    setValue(preset);
+    handleReset();
     onSave(preset, update);
     if (isPreMode && onReasonChange) {
       onReasonChange(reasonValue);
@@ -517,12 +524,17 @@ export const AttendanceTable = ({
 
   /** 出欠を作成 */
   const handleCreateAttendance = useCallback(async (member: Member, date: Dayjs, value: string) => {
-    const result = await Attendance.addOne({
-      member,
-      attendance: value,
-      date,
-    });
-    setAttendanceData((prev) => [...prev, result]);
+    try {
+      const result = await Attendance.addOne({
+        member,
+        attendance: value,
+        date,
+      });
+      setAttendanceData((prev) => [...prev, result]);
+    } catch (e) {
+      toast.error(APIError.createToastMessage(e));
+    }
+
   }, [attendanceData]);
 
   /** 出欠を更新 */

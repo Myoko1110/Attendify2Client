@@ -81,7 +81,7 @@ export function SignInView() {
 
       // cookieに認証情報があったら
       try {
-        const m = await Member.getSelf({ includeGroups: true, includeStatusPeriods: true });
+        const m = await Member.getSelf({ includeGroups: true, includeStatusPeriods: true, includeRoles: true });
         setMember(m);
         const savedRedirect = localStorage.getItem('auth_redirect');
         localStorage.removeItem('auth_redirect');

@@ -66,6 +66,7 @@ export class APIError extends Error {
 
   static fromError(e: unknown): APIError {
     if (e instanceof ZodError) {
+      console.error(e);
       return new APIError(APIErrorCode.INVALID_RESULT);
     }
 

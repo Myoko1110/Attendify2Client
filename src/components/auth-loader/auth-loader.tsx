@@ -32,39 +32,25 @@ export function AuthLoader({
   useEffect(() => {
     (async () => {
       if (member) {
-        // 権限チェック
         if (requireDashboardAccess && grade) {
-          if (!member.canAccessDashboard(grade)) {
-            setHasPermission(false);
-            setIsLoading(false);
-            return;
-          }
-          setHasPermission(true);
+          setHasPermission(member.canAccessDashboard());
         } else {
           setHasPermission(true);
         }
         setIsLoading(false);
       } else {
         try {
-          const self = await Member.getSelf({ includeGroups: true, includeStatusPeriods: true });
-
-          // 権限チェック
+          const self = await Member.getSelf({ includeGroups: true, includeStatusPeriods: true, includeRoles: true });
           if (requireDashboardAccess && grade) {
-            if (!self.canAccessDashboard(grade)) {
-              setHasPermission(false);
-              setIsLoading(false);
-              setMember(self);
-              return;
-            }
-            setHasPermission(true);
+            setHasPermission(self.canAccessDashboard());
           } else {
             setHasPermission(true);
           }
 
           setIsLoading(false);
           setMember(self);
-        } catch {
-          router.replace(`/login${(redirect && `?redirect=${redirectTo}`) || ''}`);
+        } catch (e: unknown) {
+          router.replace(`/login${redirect ? `?redirect=${redirectTo}` : ''}`);
         }
       }
     })();

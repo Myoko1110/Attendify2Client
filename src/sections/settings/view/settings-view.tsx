@@ -1,11 +1,12 @@
-
 import dayjs from 'dayjs';
 import { toast } from 'sonner';
+import { useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
+import { Tab, Tabs } from '@mui/material';
 import Divider from '@mui/material/Divider';
 import CardHeader from '@mui/material/CardHeader';
 import Typography from '@mui/material/Typography';
@@ -13,6 +14,8 @@ import CardContent from '@mui/material/CardContent';
 
 import Attendance from 'src/api/attendance';
 import { DashboardContent } from 'src/layouts/dashboard';
+
+import { PermissionsTab } from '../permissions';
 
 // ----------------------------------------------------------------------
 
@@ -42,6 +45,8 @@ export function SettingsView() {
     );
   }
 
+  const [tabIndex, setTabIndex] = useState(0);
+
   return (
     <DashboardContent>
       <Box
@@ -56,17 +61,28 @@ export function SettingsView() {
         </Typography>
       </Box>
 
+      <Tabs value={tabIndex} onChange={(_, v) => setTabIndex(v)} sx={{ mb: 3 }}>
+        <Tab label="一般" />
+        <Tab label="権限" />
+      </Tabs>
+
       <Grid container spacing={3}>
         <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardHeader title="出欠データをダウンロード" sx={{ mb: 2 }} />
-            <Divider />
-            <CardContent>
-              <Button variant="outlined" color="inherit" onClick={handleExcelDownload}>
-                Excelファイル
-              </Button>
-            </CardContent>
-          </Card>
+          <>
+            {tabIndex === 0 && (
+              <Card>
+                <CardHeader title="出欠データをダウンロード" sx={{ mb: 2 }} />
+                <Divider />
+                <CardContent>
+                  <Button variant="outlined" color="inherit" onClick={handleExcelDownload}>
+                    Excelファイル
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {tabIndex === 1 && <PermissionsTab />}
+          </>
         </Grid>
       </Grid>
     </DashboardContent>
