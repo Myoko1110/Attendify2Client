@@ -34,6 +34,11 @@ export default class Member {
     public groups?: Group[],
     public weeklyParticipations?: WeeklyParticipation[],
     public membershipStatusPeriods?: MembershipStatusPeriod[],
+    /** サーバーが解決した有効ロールキー一覧（include_roles=true 時に取得） */
+    public effectiveRoleKeys?: string[],
+    public memberRoleKeys?: string[],
+    /** クライアントが解決した有効 permission key 一覧 */
+    public effectivePermissionKeys?: string[],
   ) {}
 
   static fromSchema(data: MemberResult) {
@@ -51,6 +56,9 @@ export default class Member {
       data.groups ? Group.fromSchemaArray(data.groups) : undefined,
       data.weeklyParticipations ? data.weeklyParticipations : undefined,
       data.membershipStatusPeriods ? data.membershipStatusPeriods : undefined,
+      data.effectiveRoleKeys ? data.effectiveRoleKeys : undefined,
+      data.memberRoleKeys ? data.memberRoleKeys : undefined,
+      data.effectivePermissionKeys ? data.effectivePermissionKeys : undefined,
     );
   }
 
@@ -60,12 +68,14 @@ export default class Member {
     includeGroups = false,
     includeWeeklyParticipation = false,
     includeStatusPeriods = false,
+    includeRoles = false,
   }: {
     part?: Part;
     generation?: number;
     includeGroups?: boolean;
     includeWeeklyParticipation?: boolean;
     includeStatusPeriods?: boolean;
+    includeRoles?: boolean;
   } = {}): Promise<Member[]> {
     const params = new URLSearchParams();
     if (part) params.append('part', part.value);
@@ -73,6 +83,7 @@ export default class Member {
     if (includeGroups) params.append('include_groups', 'true');
     if (includeWeeklyParticipation) params.append('include_weekly_participation', 'true');
     if (includeStatusPeriods) params.append('include_status_periods', 'true');
+    if (includeRoles) params.append('include_roles', 'true');
 
     try {
       const result = await axios.get(`/members`, { params });
@@ -86,15 +97,18 @@ export default class Member {
     includeGroups = false,
     includeWeeklyParticipation = false,
     includeStatusPeriods = false,
+    includeRoles = true,
   }: {
     includeGroups?: boolean;
     includeWeeklyParticipation?: boolean;
     includeStatusPeriods?: boolean;
-  }): Promise<Member> {
+    includeRoles?: boolean;
+  } = {}): Promise<Member> {
     const params = new URLSearchParams();
     if (includeGroups) params.append('include_groups', 'true');
     if (includeWeeklyParticipation) params.append('include_weekly_participation', 'true');
     if (includeStatusPeriods) params.append('include_status_periods', 'true');
+    if (includeRoles) params.append('include_roles', 'true');
 
     try {
       const result = await axios.get(`/member/self?${params}`);
@@ -209,25 +223,20 @@ export default class Member {
   }
 
   /**
-   * ダッシュボードへのアクセス権限をチェック
-   * 高2以上、または執行部・パートリーダー・出欠係のみアクセス可能
-   * @param grades - 学年情報の配列
-   * @returns アクセス可能かどうか
+   * ダッシュボードへのアクセス権限をチェック。
+   * effectivePermissionKeys に 'dashboard:access' が含まれる場合はアクセス可能。
+   * effectivePermissionKeys が未解決の場合は旧来の役職・学年判定にフォールバックする。
    */
-  canAccessDashboard(grades: Grade[]): boolean {
-    // 役職による権限チェック
-    const hasPermissionByRole =
-      this.role.value === Role.EXECUTIVE.value ||
-      this.role.value === Role.PART_LEADER.value ||
-      this.role.value === Role.ATTENDANCE_OFFICER.value;
-
-    if (hasPermissionByRole) {
-      return true;
+  canAccessDashboard(): boolean {
+    // permission key による判定（auth-loader で解決済みの場合）
+    if (this.effectivePermissionKeys != null) {
+      return this.effectivePermissionKeys.includes('dashboard:access');
     }
+    throw Error('EffectivePermissionKeys is not resolved');
+  }
 
-    // 学年による権限チェック（高2以上）
-    const memberGrade = this.getGrade(grades);
-    return !!(memberGrade && memberGrade.name === 'senior2');
+  hasPermission(permission: string): boolean {
+    return this.effectivePermissionKeys?.includes(permission) ?? false;
   }
 
   async getWeeklyParticipation(): Promise<WeeklyParticipation[]> {
@@ -431,7 +440,6 @@ export const MembershipStatusPeriodSchema = z.object({
   endDate: z.string().transform((date) => parseDate(date)),
   createdAt: z
     .string()
-    .datetime()
     .transform((date) => parseDateTime(date)),
   memberId: z.string().uuid(),
   status: MembershipStatusSchema.transform(MembershipStatus.fromSchema),
@@ -461,6 +469,9 @@ export const MemberSchema = z.object({
   groups: GroupSchema.array().nullish(),
   weeklyParticipations: WeeklyParticipationSchema.array().nullish(),
   membershipStatusPeriods: MembershipStatusPeriodSchema.array().nullish(),
+  effectiveRoleKeys: z.array(z.string()).nullish(),
+  memberRoleKeys: z.array(z.string()).nullish(),
+  effectivePermissionKeys: z.array(z.string()).nullish(),
 });
 export const MemberArraySchema = z.array(MemberSchema);
 type MemberResult = z.infer<typeof MemberSchema>;

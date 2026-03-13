@@ -14,6 +14,7 @@ import Schedule from 'src/api/schedule';
 import Attendance from 'src/api/attendance';
 import { APIError } from 'src/abc/api-error';
 import ScheduleType from 'src/abc/schedule-type';
+import PreAttendance from 'src/api/pre-attendance';
 
 import { attendanceStatuses } from './attendance-config';
 
@@ -34,6 +35,9 @@ export type AttendanceDataState = {
   schedules: Schedule[] | null;
   attendanceMap: Map<string, string>;
   setAttendanceMap: React.Dispatch<React.SetStateAction<Map<string, string>>>;
+  preAttendanceSourceMap: Map<string, boolean>;
+  setPreAttendanceSourceMap: React.Dispatch<React.SetStateAction<Map<string, boolean>>>;
+  preAttendanceReasonMap: Map<string, string | null>;
   targetMembers: Member[];
   groupedMembers: Map<Part, Map<number, Member[]>>;
   toggleAttendance: (memberId: string) => void;
@@ -62,25 +66,48 @@ export function useAttendanceData(initPart: Part): AttendanceDataState {
   const [members, setMembers] = useState<Member[] | null>(null);
   const [schedules, setSchedules] = useState<Schedule[] | null>(null);
   const [attendanceMap, setAttendanceMap] = useState<Map<string, string>>(new Map());
+  const [preAttendanceSourceMap, setPreAttendanceSourceMap] = useState<Map<string, boolean>>(new Map());
+  const [preAttendanceReasonMap, setPreAttendanceReasonMap] = useState<Map<string, string | null>>(new Map());
+  const [preAttendanceData, setPreAttendanceData] = useState<PreAttendance[]>([]);
 
   const [existsAttendance, setExistsAttendance] = useState(false);
 
   const handleInitAttendance = useCallback(
-    (s?: Schedule[], m?: Member[]) => {
+    (s?: Schedule[], m?: Member[], preAttendances?: PreAttendance[]) => {
       const sche = s || schedules;
       if (!sche) return;
 
       const mem = m || members;
       if (!mem) return;
 
+      const preAtt = preAttendances || preAttendanceData;
+
       const initialMap = new Map<string, string>();
+      const preAttSourceMap = new Map<string, boolean>();
+      const preAttReasonMap = new Map<string, string | null>();
       const sch = sche.find((sc) => sc.dateOnly.equals(dateOnly));
+
       mem.forEach((member) => {
+        // 事前出欠データを確認
+        const preAttendance = preAtt.find(
+          (pa) => pa.memberId === member.id && pa.dateOnly.equals(dateOnly)
+        );
+
+        if (preAttendance) {
+          // 事前出欠データがある場合はそれを使用
+          initialMap.set(member.id, preAttendance.attendance);
+          preAttSourceMap.set(member.id, true);
+          preAttReasonMap.set(member.id, preAttendance.reason);
+          return;
+        }
+
         const statusPeriod = member.statusAt(date!);
         const status = statusPeriod?.status as MembershipStatus | undefined;
         if (status) {
           if (!status.isAttendanceTarget) return;
           initialMap.set(member.id, status.defaultAttendance ?? '');
+          preAttSourceMap.set(member.id, false);
+          preAttReasonMap.set(member.id, null);
           return;
         }
 
@@ -89,11 +116,15 @@ export function useAttendanceData(initPart: Part): AttendanceDataState {
               ?.defaultAttendance ?? '出席')
           : '出席';
         initialMap.set(member.id, defaultAttendance);
+        preAttSourceMap.set(member.id, false);
+        preAttReasonMap.set(member.id, null);
       });
 
       setAttendanceMap(initialMap);
+      setPreAttendanceSourceMap(preAttSourceMap);
+      setPreAttendanceReasonMap(preAttReasonMap);
     },
-    [schedules, members, dateOnly, date, week.num],
+    [schedules, members, preAttendanceData, dateOnly, date, week.num],
   );
 
   useEffect(() => {
@@ -109,16 +140,21 @@ export function useAttendanceData(initPart: Part): AttendanceDataState {
         });
         setMembers(sortMembers(m));
 
-        handleInitAttendance(s, m);
+        // 事前出欠データを取得
+        const preAtt = await PreAttendance.get();
+        setPreAttendanceData(preAtt);
+
+        handleInitAttendance(s, m, preAtt);
       } catch (e) {
         toast.error(APIError.createToastMessage(e));
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    handleInitAttendance(schedules ?? undefined, members ?? undefined);
-  }, [date, schedules, members, handleInitAttendance]);
+    handleInitAttendance(schedules ?? undefined, members ?? undefined, preAttendanceData);
+  }, [date, schedules, members, preAttendanceData, handleInitAttendance]);
 
   const targetMembers = useMemo(() => {
     if (!members || !schedules) return [];
@@ -170,6 +206,12 @@ export function useAttendanceData(initPart: Part): AttendanceDataState {
       const index = attendanceStatuses.indexOf(current) || 0;
       const nextStatus = attendanceStatuses[(index + 1) % attendanceStatuses.length];
       newMap.set(memberId, nextStatus);
+      return newMap;
+    });
+    // 手動で変更した場合は事前出欠由来フラグをクリア
+    setPreAttendanceSourceMap((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(memberId, false);
       return newMap;
     });
   };
@@ -225,6 +267,9 @@ export function useAttendanceData(initPart: Part): AttendanceDataState {
     schedules,
     attendanceMap,
     setAttendanceMap,
+    preAttendanceSourceMap,
+    setPreAttendanceSourceMap,
+    preAttendanceReasonMap,
     targetMembers,
     groupedMembers,
     toggleAttendance,

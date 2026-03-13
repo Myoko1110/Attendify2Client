@@ -9,11 +9,11 @@ import {
   Stack,
   Button,
   Dialog,
+  Checkbox,
   DialogTitle,
   FormControl,
   ToggleButton,
-  DialogActions,
-  ToggleButtonGroup,
+  DialogActions, FormControlLabel, ToggleButtonGroup,
 } from '@mui/material';
 
 import { useGrade } from 'src/hooks/grade';
@@ -37,7 +37,7 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
   const [targetGenerations, setTargetGenerations] = useState<number[]>([]);
   const [targetGroups, setTargetGroups] = useState<string[]>([]);
   const [excludeGroups, setExcludeGroups] = useState<string[]>([]);
-
+  const [isPreAttendanceTarget, setIsPreAttendanceTarget] = useState<boolean>(false);
 
   useEffect(() => {
     if (!schedule) return;
@@ -46,6 +46,7 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
     setTargetGenerations(schedule.generations ?? []);
     setTargetGroups(schedule.groups ?? []);
     setExcludeGroups(schedule.excludeGroups ?? []);
+    setIsPreAttendanceTarget(schedule.isPreAttendanceTarget);
   }, [schedule]);
 
 
@@ -68,6 +69,7 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
         targetGenerations.length ? targetGenerations : null,
         targetGroups.length ? targetGroups : null,
         excludeGroups.length ? excludeGroups : null,
+        isPreAttendanceTarget,
       );
 
       setSchedules((prev) =>
@@ -79,6 +81,7 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
               targetGenerations.length ? targetGenerations : null,
               targetGroups.length ? targetGroups : null,
               excludeGroups.length ? excludeGroups : null,
+              isPreAttendanceTarget,
             )
             : s
         )
@@ -187,6 +190,16 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
           </ToggleButtonGroup>
         </FormControl>
 
+        <FormControlLabel
+          control={
+            <Checkbox
+              defaultChecked
+              checked={isPreAttendanceTarget}
+              onChange={(e) => setIsPreAttendanceTarget(e.target.checked)}
+            />
+          }
+          label="事前出欠の対象"
+        />
 
         <Divider sx={{ mt: 3 }}>
           <Typography variant="button">限定</Typography>
@@ -206,13 +219,7 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
 
         <Stack>
           {groups.map((g) => (
-            <Stack
-              key={g.id}
-              direction="row"
-              alignItems="center"
-              gap={2}
-              mt={1}
-            >
+            <Stack key={g.id} direction="row" alignItems="center" gap={2} mt={1}>
               <Typography variant="subtitle2" width={100} textAlign="center">
                 {g.displayName}
               </Typography>
@@ -229,14 +236,18 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
                 onChange={(_, val) => {
                   setTargetGroups((prev) =>
                     val === 'include'
-                      ? prev.includes(g.id) ? prev : [...prev, g.id]
-                      : prev.filter((id) => id !== g.id)
+                      ? prev.includes(g.id)
+                        ? prev
+                        : [...prev, g.id]
+                      : prev.filter((id) => id !== g.id),
                   );
 
                   setExcludeGroups((prev) =>
                     val === 'exclude'
-                      ? prev.includes(g.id) ? prev : [...prev, g.id]
-                      : prev.filter((id) => id !== g.id)
+                      ? prev.includes(g.id)
+                        ? prev
+                        : [...prev, g.id]
+                      : prev.filter((id) => id !== g.id),
                   );
                 }}
               >

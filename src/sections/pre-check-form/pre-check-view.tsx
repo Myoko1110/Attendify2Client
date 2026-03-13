@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -75,16 +76,34 @@ export function PreCheckView() {
           <Loading />
         </Box>
       ) : page === 0 ? (
-        <PreCheckInput
-          preCheck={preCheck}
-          weeklyParticipations={weeklyParticipations}
-          member={member}
-          mode="create"
-          onSubmitted={(result: PreAttendance[]) => {
-            setPreAttendances(result);
-            setPage(3);
-          }}
-        />
+        preCheck.deadline && dayjs().isAfter(preCheck.deadline) ? (
+          <Box
+            sx={{
+              mb: 5,
+            }}
+          >
+            <Typography variant="body2">
+              {fDate(preCheck.startDate.toDayjs())} ~ {fDate(preCheck.endDate.toDayjs())}
+            </Typography>
+            <Typography variant="h3">事前出欠</Typography>
+
+            <Typography variant="body2" my={1} color="error">
+              締切日を過ぎているため、提出できません。<br />
+              お問い合わせは執行部まで。
+            </Typography>
+          </Box>
+        ) : (
+          <PreCheckInput
+            preCheck={preCheck}
+            weeklyParticipations={weeklyParticipations}
+            member={member}
+            mode="create"
+            onSubmitted={(result: PreAttendance[]) => {
+              setPreAttendances(result);
+              setPage(3);
+            }}
+          />
+        )
       ) : page === 2 ? (
         <PreCheckInput
           preCheck={preCheck}

@@ -45,15 +45,18 @@ export default class PreAttendance {
     member,
     month,
     preCheck,
+    date,
   }: {
     member?: Member;
     month?: Month;
     preCheck?: PreCheck;
+    date?: Dayjs;
   } = {}): Promise<PreAttendance[]> {
     const params = new URLSearchParams();
     if (member) params.append('member_id', member.id);
     if (month) params.append('month', month.toString());
     if (preCheck) params.append('pre_check_id', preCheck.id);
+    if (date) params.append('date', date.format('YYYY-MM-DD'));
 
     try {
       const result = await axios.get(`/pre-check/attendances`, { params });
@@ -61,7 +64,6 @@ export default class PreAttendance {
         PreAttendance.fromSchema(data),
       );
     } catch (e) {
-      console.log(e);
       throw APIError.fromError(e);
     }
   }
@@ -134,8 +136,8 @@ export const PreAttendanceSchema = z.object({
   attendance: z.string(),
   reason: z.string().nullable(),
   preCheckId: z.string().length(10).nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 });
 export const PreAttendanceArraySchema = z.array(PreAttendanceSchema);
 export type PreAttendanceResult = z.infer<typeof PreAttendanceSchema>;

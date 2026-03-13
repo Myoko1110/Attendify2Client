@@ -47,17 +47,24 @@
     width: 24px;
 }
 
-.sonner-loading-wrapper {
-    height: 48px !important;
-    width: 48px !important;
+.toaster__icon .sonner-loading-wrapper {
+    height: 100% !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
 }
 
-.sonner-spinner {
-    height: 20px;
-    width: 20px;
+.toaster__icon .sonner-spinner {
+    height: 20px !important;
+    width: 20px !important;
 }
 
 .toaster[data-type="loading"] .toaster__icon {
+    background-color: rgba(var(--palette-grey-400Channel) / 0.16);
+}
+
+.toaster__loading .toaster__icon {
     background-color: rgba(var(--palette-grey-400Channel) / 0.16);
 }
 

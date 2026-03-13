@@ -31,6 +31,10 @@ import { WeeklyParticipationEditCell } from './weekly-participation-edit-cell';
 type UserTableRowProps = {
   row: Member;
   setMembers: React.Dispatch<React.SetStateAction<Member[] | null>>;
+  roleDisplayMap: Map<string, string>;
+  memberRoleKeys: string[];
+  showGroups: boolean;
+  showRoles: boolean;
   selected: boolean;
   onSelectRow: (row: Member) => void;
 };
@@ -40,8 +44,13 @@ export const UserTableRow = memo(function UserTableRow({
   selected,
   onSelectRow,
   setMembers,
+  roleDisplayMap,
+  memberRoleKeys,
+  showGroups,
+  showRoles,
 }: UserTableRowProps) {
   const grade = useGrade();
+  const editableRoleKeys = memberRoleKeys;
 
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -104,15 +113,31 @@ export const UserTableRow = memo(function UserTableRow({
           </Stack>
         </TableCell>
 
-        <TableCell>
-          <Stack flexDirection="row" gap={0.5}>
-            {row.groups?.map((g) => (
-              <Label key={g.id}>{g.displayName}</Label>
-            ))}
-          </Stack>
-        </TableCell>
+        {showGroups && (
+          <TableCell>
+            <Stack flexDirection="row" gap={0.5}>
+              {row.groups?.map((g) => (
+                <Label key={g.id}>{g.displayName}</Label>
+              ))}
+            </Stack>
+          </TableCell>
+        )}
 
-        <TableCell>{row.role?.displayName || '-'}</TableCell>
+        {showRoles && (
+          <TableCell>
+            <Stack flexDirection="row" gap={0.5} flexWrap="wrap">
+              {editableRoleKeys.length > 0 ? (
+                editableRoleKeys.map((roleKey) => (
+                  <Label key={roleKey} color="default">
+                    {roleDisplayMap.get(roleKey) || roleKey}
+                  </Label>
+                ))
+              ) : (
+                '-'
+              )}
+            </Stack>
+          </TableCell>
+        )}
 
         <TableCell>{row.email}</TableCell>
 

@@ -10,6 +10,7 @@ import Typography from '@mui/material/Typography';
 import TableContainer from '@mui/material/TableContainer';
 
 import Member from 'src/api/member';
+import { RbacRole } from 'src/api/rbac';
 import { APIError } from 'src/abc/api-error';
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -31,9 +32,36 @@ export function UserView() {
   const table = useTable();
 
   const [members, setMembers] = useState<Member[] | null>(null);
+  const [rbacRoles, setRbacRoles] = useState<RbacRole[]>([]);
 
   const [filterName, setFilterName] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const [showGroups, setShowGroups] = useState(false);
+  const [showRoles, setShowRoles] = useState(true);
+
+  const roleDisplayMap = useMemo(() => {
+    const m = new Map<string, string>();
+    rbacRoles.forEach((r) => m.set(r.key, r.displayName));
+    return m;
+  }, [rbacRoles]);
+
+  const headLabel = useMemo(() => {
+    const base = [
+      { id: 'part', label: 'パート' },
+      { id: 'generation', label: '学年' },
+      { id: 'nameKana', label: '名前' },
+    ];
+    const optional = [] as Array<{ id: string; label: string; sortable?: boolean; align?: 'center' | 'left' | 'right' }>;
+    if (showGroups) optional.push({ id: 'groups', label: 'グループ', sortable: false });
+    if (showRoles) optional.push({ id: 'role', label: 'ロール', sortable: false });
+    return [
+      ...base,
+      ...optional,
+      { id: 'email', label: 'メールアドレス' },
+      { id: 'pariticipationInfo', label: '参加情報', sortable: false, align: 'center' as const },
+      { id: '', label: '' },
+    ];
+  }, [showGroups, showRoles]);
 
   // O(1) で選択状態を確認するための Set
   const selectedSet = useMemo(
@@ -48,6 +76,15 @@ export function UserView() {
     [table, members]
   );
 
+  const loadRoles = useCallback(async () => {
+    try {
+      const roles = await RbacRole.getAll();
+      setRbacRoles(roles);
+    } catch (e) {
+      toast.error(APIError.createToastMessage(e));
+    }
+  }, []);
+
   const dataFiltered: Member[] = applyFilter({
     inputData: members || [],
     comparator: getComparator(table.order, table.orderBy),
@@ -56,18 +93,20 @@ export function UserView() {
 
   const notFound = !dataFiltered.length && !!filterName;
 
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     try {
-      const m = await Member.get({ includeGroups: true, includeWeeklyParticipation: true, includeStatusPeriods: true });
+      // includeRoles: true を追加して member.memberRoleKeys を取得する
+      const m = await Member.get({ includeGroups: true, includeWeeklyParticipation: true, includeStatusPeriods: true, includeRoles: true });
       setMembers(m);
     } catch (e) {
       toast.error(APIError.createToastMessage(e));
     }
-  };
+  }, [setMembers]);
 
   useEffect(() => {
     loadMembers();
-  }, []);
+    loadRoles();
+  }, [loadMembers, loadRoles]);
 
   return (
     <DashboardContent>
@@ -112,6 +151,10 @@ export function UserView() {
                 table.onResetPage();
               }}
               setMembers={setMembers}
+              showGroups={showGroups}
+              showRoles={showRoles}
+              onToggleGroups={setShowGroups}
+              onToggleRoles={setShowRoles}
             />
 
             <Scrollbar>
@@ -124,21 +167,7 @@ export function UserView() {
                     numSelected={table.selected.length}
                     onSort={table.onSort}
                     onSelectAllRows={handleSelectAllRows}
-                    headLabel={[
-                      { id: 'part', label: 'パート' },
-                      { id: 'generation', label: '学年' },
-                      { id: 'nameKana', label: '名前' },
-                      { id: 'groups', label: 'グループ', sortable: false },
-                      { id: 'role', label: '役職' },
-                      { id: 'email', label: 'メールアドレス' },
-                      {
-                        id: 'pariticipationInfo',
-                        label: '参加情報',
-                        sortable: false,
-                        align: 'center',
-                      },
-                      { id: '' },
-                    ]}
+                    headLabel={headLabel}
                   />
                   <TableBody>
                     {dataFiltered.map((row) => (
@@ -146,6 +175,10 @@ export function UserView() {
                         key={row.id}
                         row={row}
                         setMembers={setMembers}
+                        roleDisplayMap={roleDisplayMap}
+                        memberRoleKeys={row.memberRoleKeys ?? []}
+                        showGroups={showGroups}
+                        showRoles={showRoles}
                         selected={selectedSet.has(row.id)}
                         onSelectRow={table.onSelectRow}
                       />

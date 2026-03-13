@@ -22,12 +22,20 @@ export default class Schedule {
     public generations: number[] | null,
     public groups: string[] | null,
     public excludeGroups: string[] | null,
+    public isPreAttendanceTarget: boolean,
   ) {}
 
   static fromSchema(data: SchedulesResult) {
     return data.map(
       (item) =>
-        new Schedule(item.date, item.type, item.generations, item.groups, item.excludeGroups),
+        new Schedule(
+          item.date,
+          item.type,
+          item.generations,
+          item.groups,
+          item.excludeGroups,
+          item.isPreAttendanceTarget,
+        ),
     );
   }
 
@@ -45,9 +53,10 @@ export default class Schedule {
     type: ScheduleType,
     generations: number[] | null,
     groups: string[] | null,
-    exclude_groups: string[] | null,
+    excludeGroups: string[] | null,
+    isPreAttendanceTarget: boolean,
   ): Promise<boolean> {
-    const body = SchedulePostSchema.parse({ date, type, generations, groups, exclude_groups });
+    const body = SchedulePostSchema.parse({ date, type, generations, groups, excludeGroups, isPreAttendanceTarget });
 
     try {
       const result = await axios.post('/schedule', body, {
@@ -63,10 +72,11 @@ export default class Schedule {
     type: ScheduleType,
     generations: number[] | null,
     groups: string[] | null,
-    exclude_groups: string[] | null,
+    excludeGroups: string[] | null,
+    isPreAttendanceTarget: boolean,
   ): Promise<boolean> {
     this.type = type;
-    return Schedule.add(this.date, type, generations, groups, exclude_groups);
+    return Schedule.add(this.date, type, generations, groups, excludeGroups, isPreAttendanceTarget);
   }
 
   async remove(): Promise<boolean> {
@@ -89,26 +99,32 @@ export default class Schedule {
   getDisplayTarget(grade: Grade[], groups: Group[]): string {
     const displays: string[] = [];
     this.groups?.forEach((t) => {
-      const group = groups.find((g) => g.id === t)?.displayName
+      const group = groups.find((g) => g.id === t)?.displayName;
       if (group) displays.push(group);
     });
     this.excludeGroups?.forEach((t) => {
-      const group = groups.find((g) => g.id === t)?.displayName
+      const group = groups.find((g) => g.id === t)?.displayName;
       if (group) displays.push(`${group}以外`);
     });
 
     // generationsの処理
     if (this.generations && this.generations.length > 0) {
       // すべてのseniorとjuniorのgenerationを取得
-      const allSeniorGenerations = grade.filter((gr) => gr.type === 'senior').map((gr) => gr.generation);
-      const allJuniorGenerations = grade.filter((gr) => gr.type === 'junior').map((gr) => gr.generation);
+      const allSeniorGenerations = grade
+        .filter((gr) => gr.type === 'senior')
+        .map((gr) => gr.generation);
+      const allJuniorGenerations = grade
+        .filter((gr) => gr.type === 'junior')
+        .map((gr) => gr.generation);
 
       // this.generationsにすべてのseniorが含まれているか確認
-      const hasAllSenior = allSeniorGenerations.length > 0 &&
+      const hasAllSenior =
+        allSeniorGenerations.length > 0 &&
         allSeniorGenerations.every((gen) => this.generations!.includes(gen));
 
       // this.generationsにすべてのjuniorが含まれているか確認
-      const hasAllJunior = allJuniorGenerations.length > 0 &&
+      const hasAllJunior =
+        allJuniorGenerations.length > 0 &&
         allJuniorGenerations.every((gen) => this.generations!.includes(gen));
 
       if (hasAllSenior && !hasAllJunior) {
@@ -135,6 +151,7 @@ export const SchedulesSchema = z
     generations: z.number().array().nullable(),
     groups: z.string().array().nullable(),
     excludeGroups: z.string().array().nullable(),
+    isPreAttendanceTarget: z.boolean(),
   })
   .array();
 export type SchedulesResult = z.infer<typeof SchedulesSchema>;
@@ -144,5 +161,6 @@ export const SchedulePostSchema = z.object({
   type: z.instanceof(ScheduleType).transform((type) => type.value),
   generations: z.number().array().nullable(),
   groups: z.string().array().nullable(),
-  exclude_groups: z.string().array().nullable(),
+  excludeGroups: z.string().array().nullable(),
+  isPreAttendanceTarget: z.boolean(),
 });

@@ -5,7 +5,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 
 import { DateOnly } from 'src/utils/date-only';
-import { parseDate, fDateBackend } from 'src/utils/format-time';
+import { parseDate, fDateBackend, parseDateTime, fDateTimeBackend } from 'src/utils/format-time';
 
 import { APIError } from '../abc/api-error';
 import PreAttendance from './pre-attendance';
@@ -16,6 +16,7 @@ export default class PreCheck {
     public startDate: DateOnly,
     public endDate: DateOnly,
     public description: string,
+    public deadline: Dayjs | null,
     public editDeadlineDays: number,
   ) {}
 
@@ -39,6 +40,7 @@ export default class PreCheck {
 
   static async create(body: PreCheckPost) {
     try {
+      console.log(body);
       const result = await axios.post(`/pre-check`, body, {
         headers: { 'content-type': 'application/json' },
       });
@@ -62,13 +64,16 @@ export default class PreCheck {
       const result = await axios.patch(`/pre-check/${this.id}`, body, {
         headers: { 'content-type': 'application/json' },
       });
-      return PreCheck.fromSchema(preCheckSchema.parse({
-        id: this.id,
-        startDate: result.data.startDate,
-        endDate: result.data.endDate,
-        description: result.data.description,
-        editDeadlineDays: result.data.editDeadlineDays,
-      }));
+      return PreCheck.fromSchema(
+        preCheckSchema.parse({
+          id: this.id,
+          startDate: result.data.startDate,
+          endDate: result.data.endDate,
+          description: result.data.description,
+          deadline: result.data.deadline,
+          editDeadlineDays: result.data.editDeadlineDays,
+        }),
+      );
     } catch (e) {
       throw APIError.fromError(e);
     }
@@ -84,6 +89,7 @@ export default class PreCheck {
       DateOnly.fromDayjs(data.startDate),
       DateOnly.fromDayjs(data.endDate),
       data.description,
+      data.deadline,
       data.editDeadlineDays,
     );
   }
@@ -94,6 +100,11 @@ export const preCheckSchema = z.object({
   startDate: z.string().transform((str) => parseDate(str)),
   endDate: z.string().transform((str) => parseDate(str)),
   description: z.string().max(256),
+  deadline: z
+    .string()
+    .datetime()
+    .nullable()
+    .transform((str) => (str ? parseDateTime(str) : null)),
   editDeadlineDays: z.number().int().min(0),
 });
 
@@ -104,12 +115,14 @@ export const preCheckPostSchema = z
     startDate: z.custom<Dayjs>((val) => dayjs.isDayjs(val) && val.isValid(), '必須項目です'),
     endDate: z.custom<Dayjs>((val) => dayjs.isDayjs(val) && val.isValid(), '必須項目です'),
     description: z.string().max(256),
+    deadline: z.union([z.custom<Dayjs>((val) => dayjs.isDayjs(val) && val.isValid()), z.null()]),
     editDeadlineDays: z.number().int().min(0),
   })
   .transform((data) => ({
     startDate: fDateBackend(data.startDate),
     endDate: fDateBackend(data.endDate),
     description: data.description,
+    deadline: data.deadline ? fDateTimeBackend(data.deadline) : null,
     editDeadlineDays: data.editDeadlineDays,
   }));
 export type PreCheckPost = z.infer<typeof preCheckPostSchema>;

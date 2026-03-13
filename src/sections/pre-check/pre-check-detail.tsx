@@ -1,7 +1,7 @@
 import type PreCheck from 'src/api/pre-check';
 import type PreAttendance from 'src/api/pre-attendance';
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
@@ -38,12 +38,81 @@ export function PreCheckDetail({ open, setOpen, preCheck }: Props) {
   const [preAttendances, setPreAttendances] = useState<PreAttendance[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
 
-  const [statusTab, setStatusTab] = useState<'submitted' | 'unsubmitted'>('submitted');
+  const [statusTab, setStatusTab] = useState<'submitted' | 'unsubmitted' | 'excluded'>('submitted');
 
-  const submittedMemberIds = new Set(preAttendances.map((attendance) => attendance.memberId));
-  const submittedMembers = allMembers.filter((member) => submittedMemberIds.has(member.id));
-  const unsubmittedMembers = allMembers.filter((member) => !submittedMemberIds.has(member.id));
-  const currentMembers = statusTab === 'submitted' ? submittedMembers : unsubmittedMembers;
+  // PreCheckの期間内のスケジュールを取得（メモ化）
+  const schedulesInRange = useMemo(() =>
+    schedules.filter((schedule) => {
+      const startDate = preCheck.startDate.toDayjs();
+      const endDate = preCheck.endDate.toDayjs();
+      return (
+        (schedule.date.isAfter(startDate) || schedule.date.isSame(startDate, 'day')) &&
+        (schedule.date.isBefore(endDate) || schedule.date.isSame(endDate, 'day'))
+      );
+    })
+  , [schedules, preCheck.startDate, preCheck.endDate]);
+
+  // 部員にとって事前出欠の対象となる予定かどうかを判定
+  const isTargetSchedule = useMemo(() => (schedule: Schedule, member: Member) => {
+    if (!schedule.isPreAttendanceTarget) return false;
+
+    const statusPeriod = member.statusAt(schedule.date);
+    const status = statusPeriod?.status;
+
+    if (status && !status.isAttendanceTarget) {
+      return false;
+    }
+    if (status && status.isPreAttendanceExcluded) {
+      return false;
+    }
+
+    const groups = member.groups ?? [];
+    const hasGroup = (ids: readonly string[]) =>
+      ids.some((gid) => groups.some((g) => g.id === gid));
+
+    const targetGenerations = schedule.generations;
+    const includeGroups = schedule.groups;
+    const excludeGroups = schedule.excludeGroups;
+
+    const generationMatch = targetGenerations === null || targetGenerations.includes(member.generation);
+    const groupMatch = includeGroups === null || hasGroup(includeGroups);
+    const isExcluded = excludeGroups !== null && hasGroup(excludeGroups);
+
+    return generationMatch && groupMatch && !isExcluded;
+  }, []);
+
+  // メンバーリストの計算をメモ化
+  const { submittedMembers, unsubmittedMembers, excludedMembers } = useMemo(() => {
+    const submittedMemberIds = new Set(preAttendances.map((attendance) => attendance.memberId));
+    const submitted = allMembers.filter((member) => submittedMemberIds.has(member.id));
+
+    const excluded: Member[] = [];
+    const unsubmitted: Member[] = [];
+
+    allMembers.forEach((member) => {
+      if (submittedMemberIds.has(member.id)) return;
+
+      const hasTarget = schedulesInRange.some((schedule) => isTargetSchedule(schedule, member));
+
+      if (hasTarget) {
+        unsubmitted.push(member);
+      } else {
+        excluded.push(member);
+      }
+    });
+
+
+    return {
+      submittedMembers: submitted,
+      unsubmittedMembers: unsubmitted,
+      excludedMembers: excluded,
+    };
+  }, [allMembers, preAttendances, schedulesInRange, isTargetSchedule]);
+
+  const currentMembers =
+    statusTab === 'submitted' ? submittedMembers
+    : statusTab === 'unsubmitted' ? unsubmittedMembers
+    : excludedMembers;
 
   const theme = useTheme();
   const mediaQuery = useMediaQuery(theme.breakpoints.down('sm'));
@@ -60,7 +129,7 @@ export function PreCheckDetail({ open, setOpen, preCheck }: Props) {
 
   useEffect(() => {
     (async () => {
-      const all = await Member.get();
+      const all = await Member.get({ includeStatusPeriods: true });
       const mem = all.filter((member) => !member.part.equals(Part.ADVISOR));
       setAllMembers(mem);
 
@@ -114,6 +183,7 @@ export function PreCheckDetail({ open, setOpen, preCheck }: Props) {
         >
           <Tab value="submitted" label={`提出済み (${submittedMembers.length})`} />
           <Tab value="unsubmitted" label={`未提出 (${unsubmittedMembers.length})`} />
+          <Tab value="excluded" label={`対象外 (${excludedMembers.length})`} />
         </Tabs>
         <Scrollbar>
           <TableContainer sx={{ overflow: 'unset' }}>
@@ -142,7 +212,8 @@ export function PreCheckDetail({ open, setOpen, preCheck }: Props) {
                       createdAt={preAttendance?.createdAt ?? null}
                       updatedAt={preAttendance?.updateAt ?? null}
                       preCheck={preCheck}
-                      schedules={schedules}
+                      schedulesInRange={schedulesInRange}
+                      isTargetSchedule={isTargetSchedule}
                       preAttendances={preAttendances}
                     />
                   );

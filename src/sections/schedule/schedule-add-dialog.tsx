@@ -10,11 +10,13 @@ import {
   Stack,
   Button,
   Dialog,
+  Checkbox,
   DialogTitle,
   FormControl,
   ToggleButton,
   DialogActions,
   FormHelperText,
+  FormControlLabel,
   ToggleButtonGroup,
 } from '@mui/material';
 
@@ -39,6 +41,7 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
   const [targetGenerations, setTargetGenerations] = useState<number[]>([]);
   const [targetGroups, setTargetGroups] = useState<string[]>([]);
   const [excludeGroups, setExcludeGroups] = useState<string[]>([]);
+  const [isPreAttendanceTarget, setIsPreAttendanceTarget] = useState<boolean>(false);
   const [error, setError] = useState(false);
 
   const handleClose = () => {
@@ -48,6 +51,7 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
     setTargetGenerations([]);
     setTargetGroups([]);
     setExcludeGroups([]);
+    setIsPreAttendanceTarget(false);
   };
 
   const handleSubmit = async () => {
@@ -62,13 +66,13 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
     const type = ScheduleType.valueOf(scheduleType);
 
     try {
-
       await Schedule.add(
         date,
         type,
         targetGenerations.length ? targetGenerations : null,
         targetGroups.length ? targetGroups : null,
         excludeGroups.length ? excludeGroups : null,
+        isPreAttendanceTarget,
       );
       toast.success('追加しました');
       setSchedules((prev) => [
@@ -79,10 +83,10 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
           targetGenerations.length ? targetGenerations : null,
           targetGroups.length ? targetGroups : null,
           excludeGroups.length ? excludeGroups : null,
+          isPreAttendanceTarget,
         ),
       ]);
       handleClose();
-
     } catch (e) {
       toast.error(APIError.createToastMessage(e));
     }
@@ -172,6 +176,17 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
           <FormHelperText error>{error && '必須項目です'}</FormHelperText>
         </FormControl>
 
+        <FormControlLabel
+          control={
+            <Checkbox
+              defaultChecked
+              value={isPreAttendanceTarget}
+              onChange={(e) => setIsPreAttendanceTarget(e.target.checked)}
+            />
+          }
+          label="事前出欠の対象"
+        />
+
         <Divider sx={{ mt: 3 }}>
           <Typography variant="button">限定</Typography>
         </Divider>
@@ -209,7 +224,7 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
                       ? prev.includes(g.id)
                         ? prev
                         : [...prev, g.id]
-                      : prev.filter((id) => id !== g.id)
+                      : prev.filter((id) => id !== g.id),
                   );
 
                   setExcludeGroups((prev) =>
@@ -217,10 +232,9 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
                       ? prev.includes(g.id)
                         ? prev
                         : [...prev, g.id]
-                      : prev.filter((id) => id !== g.id)
+                      : prev.filter((id) => id !== g.id),
                   );
                 }}
-
               >
                 <ToggleButton value="include" fullWidth>
                   のみ

@@ -16,6 +16,7 @@ export function SonnerToaster() {
         classNames: {
           toast: 'toaster',
           icon: 'toaster__icon',
+          loading: 'toaster__loading',
           success: 'toaster__success',
           info: 'toaster__info',
           warning: 'toaster__warning',

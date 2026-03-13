@@ -30,7 +30,10 @@ import { MemberAttendanceCard } from '../components/member-attendance-card';
 
 
 export function InputView() {
-  const selfPart = useMember().member?.part;
+  const self = useMember().member;
+  const hasNotPermission = !!self && !self.hasPermission('attendance:write');
+
+  const selfPart = self?.part;
   const initPart = selfPart !== undefined && selfPart !== Part.ADVISOR ? selfPart : Part.FLUTE;
 
   const {
@@ -44,6 +47,9 @@ export function InputView() {
     schedules,
     attendanceMap,
     setAttendanceMap,
+    preAttendanceSourceMap,
+    setPreAttendanceSourceMap,
+    preAttendanceReasonMap,
     groupedMembers,
     toggleAttendance,
     handleSubmit,
@@ -115,6 +121,11 @@ export function InputView() {
       newMap.set(memberId, status);
       return newMap;
     });
+    setPreAttendanceSourceMap((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(memberId, false);
+      return newMap;
+    });
     closePicker();
   };
 
@@ -122,6 +133,11 @@ export function InputView() {
     setAttendanceMap((prev) => {
       const newMap = new Map(prev);
       newMap.set(memberId, value);
+      return newMap;
+    });
+    setPreAttendanceSourceMap((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(memberId, false);
       return newMap;
     });
   };
@@ -161,12 +177,21 @@ export function InputView() {
               ))}
             </Tabs>
 
-            {!date ||
-              (!schedules.find((s) => s.dateOnly.equals(dateOnly)) && (
-                <Alert sx={{ mx: 3, mt: 3 }} severity="warning">
-                  {date!.isSame(today, 'date') ? '本日' : date!.format('MM/DD')}は予定がありません。
+            <Box sx={{ mx: 3, mt: 2, gap: 1 }}>
+              {hasNotPermission && (
+                <Alert severity="error" sx={{ mt: 1 }}>
+                  権限がないため出欠は送信できません。
                 </Alert>
-              ))}
+              )}
+
+              {!date ||
+                (!schedules.find((s) => s.dateOnly.equals(dateOnly)) && (
+                  <Alert severity="warning" sx={{ mt: 1 }}>
+                    {date!.isSame(today, 'date') ? '本日' : date!.format('MM/DD')}
+                    は予定がありません。
+                  </Alert>
+                ))}
+            </Box>
 
             <Grid container spacing={3} sx={{ p: 3, flexGrow: 1 }}>
               {(groupedMembers.get(part) || new Map()).size === 0 ? (
@@ -190,6 +215,8 @@ export function InputView() {
                               <MemberAttendanceCard
                                 member={member}
                                 attendance={attendance}
+                                isFromPreAttendance={preAttendanceSourceMap.get(member.id) || false}
+                                preAttendanceReason={preAttendanceReasonMap.get(member.id)}
                                 suppressHover={suppressHoverMemberId === member.id}
                                 isPickerOpen={
                                   Boolean(pickerAnchorEl) && pickerMemberId === member.id
@@ -237,7 +264,21 @@ export function InputView() {
                   label="日付"
                   slotProps={{
                     calendarHeader: { format: 'YYYY年M月' },
-                    actionBar: { actions: ['today', 'accept'] },
+                    actionBar: {
+                      actions: ['today', 'accept'],
+                      sx: {
+                        '.MuiButton-root': {
+                          borderColor: 'grey.900',
+                          borderWidth: 1,
+                          borderStyle: 'solid',
+                          color: 'black',
+                        },
+                        '& .MuiButton-root:last-child': {
+                          backgroundColor: 'grey.900',
+                          color: 'white',
+                        },
+                      },
+                    },
                     toolbar: { toolbarFormat: 'M月D日' },
                   }}
                   views={['year', 'month', 'day']}
@@ -246,9 +287,23 @@ export function InputView() {
                   format="YYYY/MM/DD"
                 />
               </LocalizationProvider>
-              <Button variant="contained" color="inherit" onClick={() => handleSubmit()}>
-                送信
-              </Button>
+
+              <Box>
+                <Button
+                  variant="contained"
+                  color="inherit"
+                  onClick={() => handleSubmit()}
+                  disabled={hasNotPermission}
+                  sx={{ display: 'block' }}
+                >
+                  送信
+                </Button>
+                {hasNotPermission && (
+                  <Typography color="error" variant="caption">
+                    権限がありません
+                  </Typography>
+                )}
+              </Box>
             </Stack>
           </>
         ) : (

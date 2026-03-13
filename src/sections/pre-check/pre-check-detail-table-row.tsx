@@ -22,11 +22,12 @@ type UserTableRowProps = {
   createdAt: Dayjs | null;
   updatedAt: Dayjs | null;
   preCheck: PreCheck;
-  schedules: Schedule[];
+  schedulesInRange: Schedule[];
+  isTargetSchedule: (schedule: Schedule, member: Member) => boolean;
   preAttendances: PreAttendance[];
 };
 
-export function PreCheckDetailTableRow({ row, createdAt, updatedAt, preCheck, schedules, preAttendances }: UserTableRowProps) {
+export function PreCheckDetailTableRow({ row, createdAt, updatedAt, preCheck, schedulesInRange, isTargetSchedule, preAttendances }: UserTableRowProps) {
   const grade = useGrade();
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -49,8 +50,8 @@ export function PreCheckDetailTableRow({ row, createdAt, updatedAt, preCheck, sc
         open={dialogOpen}
         setOpen={setDialogOpen}
         member={row}
-        preCheck={preCheck}
-        schedules={schedules}
+        schedulesInRange={schedulesInRange}
+        isTargetSchedule={isTargetSchedule}
         preAttendances={preAttendances}
       />
     </>
