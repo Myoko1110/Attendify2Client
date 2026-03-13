@@ -5,12 +5,14 @@ import { memo, useState } from 'react';
 
 import { Stack } from '@mui/material';
 import Button from '@mui/material/Button';
+import Switch from '@mui/material/Switch';
 import Tooltip from '@mui/material/Tooltip';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -24,9 +26,13 @@ type UserTableToolbarProps = {
   filterName: string;
   onFilterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   setMembers: React.Dispatch<SetStateAction<Member[] | null>>;
+  showGroups: boolean;
+  showRoles: boolean;
+  onToggleGroups: (checked: boolean) => void;
+  onToggleRoles: (checked: boolean) => void;
 };
 
-export const UserTableToolbar = memo(function UserTableToolbar({ selected, onSelectAllRows, filterName, onFilterName, setMembers }: UserTableToolbarProps) {
+export const UserTableToolbar = memo(function UserTableToolbar({ selected, onSelectAllRows, filterName, onFilterName, setMembers, showGroups, showRoles, onToggleGroups, onToggleRoles }: UserTableToolbarProps) {
   const numSelected = selected.length;
   const [openBulkStatusPeriod, setOpenBulkStatusPeriod] = useState(false);
 
@@ -48,18 +54,30 @@ export const UserTableToolbar = memo(function UserTableToolbar({ selected, onSel
           {numSelected} 件選択中
         </Typography>
       ) : (
-        <OutlinedInput
-          fullWidth
-          value={filterName}
-          onChange={onFilterName}
-          placeholder="検索"
-          startAdornment={
-            <InputAdornment position="start">
-              <Iconify width={20} icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
-            </InputAdornment>
-          }
-          sx={{ maxWidth: 320 }}
-        />
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+          <OutlinedInput
+            fullWidth
+            value={filterName}
+            onChange={onFilterName}
+            placeholder="検索"
+            startAdornment={
+              <InputAdornment position="start">
+                <Iconify width={20} icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
+              </InputAdornment>
+            }
+            sx={{ maxWidth: 320 }}
+          />
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+            <FormControlLabel
+              control={<Switch checked={showGroups} onChange={(e) => onToggleGroups(e.target.checked)} />}
+              label="グループ表示"
+            />
+            <FormControlLabel
+              control={<Switch checked={showRoles} onChange={(e) => onToggleRoles(e.target.checked)} />}
+              label="ロール表示"
+            />
+          </Stack>
+        </Stack>
       )}
 
       {numSelected > 0 && (

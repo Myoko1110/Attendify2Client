@@ -35,6 +35,7 @@ export default class Member {
     public membershipStatusPeriods?: MembershipStatusPeriod[],
     /** サーバーが解決した有効ロールキー一覧（include_roles=true 時に取得） */
     public effectiveRoleKeys?: string[],
+    public memberRoleKeys?: string[],
     /** クライアントが解決した有効 permission key 一覧 */
     public effectivePermissionKeys?: string[],
   ) {}
@@ -54,6 +55,7 @@ export default class Member {
       data.weeklyParticipations ? data.weeklyParticipations : undefined,
       data.membershipStatusPeriods ? data.membershipStatusPeriods : undefined,
       data.effectiveRoleKeys ? data.effectiveRoleKeys : undefined,
+      data.memberRoleKeys ? data.memberRoleKeys : undefined,
       data.effectivePermissionKeys ? data.effectivePermissionKeys : undefined,
     );
   }
@@ -64,12 +66,14 @@ export default class Member {
     includeGroups = false,
     includeWeeklyParticipation = false,
     includeStatusPeriods = false,
+    includeRoles = false,
   }: {
     part?: Part;
     generation?: number;
     includeGroups?: boolean;
     includeWeeklyParticipation?: boolean;
     includeStatusPeriods?: boolean;
+    includeRoles?: boolean;
   } = {}): Promise<Member[]> {
     const params = new URLSearchParams();
     if (part) params.append('part', part.value);
@@ -77,6 +81,7 @@ export default class Member {
     if (includeGroups) params.append('include_groups', 'true');
     if (includeWeeklyParticipation) params.append('include_weekly_participation', 'true');
     if (includeStatusPeriods) params.append('include_status_periods', 'true');
+    if (includeRoles) params.append('include_roles', 'true');
 
     try {
       const result = await axios.get(`/members`, { params });
@@ -405,7 +410,6 @@ export const MembershipStatusPeriodSchema = z.object({
   endDate: z.string().transform((date) => parseDate(date)),
   createdAt: z
     .string()
-    .datetime()
     .transform((date) => parseDateTime(date)),
   memberId: z.string().uuid(),
   status: MembershipStatusSchema.transform(MembershipStatus.fromSchema),
@@ -435,6 +439,7 @@ export const MemberSchema = z.object({
   weeklyParticipations: WeeklyParticipationSchema.array().nullish(),
   membershipStatusPeriods: MembershipStatusPeriodSchema.array().nullish(),
   effectiveRoleKeys: z.array(z.string()).nullish(),
+  memberRoleKeys: z.array(z.string()).nullish(),
   effectivePermissionKeys: z.array(z.string()).nullish(),
 });
 export const MemberArraySchema = z.array(MemberSchema);

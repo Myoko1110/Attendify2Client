@@ -136,8 +136,8 @@ export const PreAttendanceSchema = z.object({
   attendance: z.string(),
   reason: z.string().nullable(),
   preCheckId: z.string().length(10).nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 });
 export const PreAttendanceArraySchema = z.array(PreAttendanceSchema);
 export type PreAttendanceResult = z.infer<typeof PreAttendanceSchema>;

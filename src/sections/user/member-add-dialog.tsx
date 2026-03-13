@@ -153,7 +153,7 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
             />
           </Grid>
 
-          <Grid size={{ xs: 4 }}>
+          <Grid size={{ xs: 6 }}>
             <FormControl error={!!errorMsg.part} fullWidth>
               <InputLabel>パート</InputLabel>
               <Select label="パート" value={part} onChange={(e) => setPart(e.target.value)}>
@@ -164,18 +164,7 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
               <FormHelperText>{errorMsg.part}</FormHelperText>
             </FormControl>
           </Grid>
-          <Grid size={{ xs: 4 }}>
-            <FormControl error={!!errorMsg.role} fullWidth>
-              <InputLabel>役職</InputLabel>
-              <Select label="役職" value={role} onChange={(e) => setRole(e.target.value)}>
-                {Role.COMMON.map((r) => (
-                  <MenuItem value={r.value} key={r.value}>{r.displayName}</MenuItem>
-                ))}
-              </Select>
-              <FormHelperText>{errorMsg.role}</FormHelperText>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 4 }}>
+          <Grid size={{ xs: 6 }}>
             <TextField
               label="学年"
               value={generation}

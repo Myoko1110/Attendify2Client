@@ -120,7 +120,6 @@ export const GroupSchema = z.object({
   displayName: z.string(),
   createdAt: z
     .string()
-    .datetime()
     .transform((str) => parseDateTime(str)),
 });
 export type GroupResult = z.infer<typeof GroupSchema>;

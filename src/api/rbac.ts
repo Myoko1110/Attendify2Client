@@ -102,7 +102,12 @@ export class RbacRole {
   static async getMemberRoles(memberId: string): Promise<RbacRole[]> {
     try {
       const result = await axios.get(`/rbac/members/${memberId}/roles`);
-      return RbacRole.fromSchemaArray(RbacRoleSchema.array().parse(result.data));
+      const data = result.data as { memberId?: string; member_id?: string; roleKeys?: string[]; role_keys?: string[] };
+      const roleKeys = data.roleKeys ?? data.role_keys ?? [];
+      if (roleKeys.length === 0) return [];
+
+      const allRoles = await RbacRole.getAll();
+      return allRoles.filter((role) => roleKeys.includes(role.key));
     } catch (e) {
       throw APIError.fromError(e);
     }
@@ -111,7 +116,7 @@ export class RbacRole {
   static async updateMemberRoles(memberId: string, roles: RbacRole[]): Promise<boolean> {
     try {
       const result = await axios.put(`/rbac/members/${memberId}/roles`, {
-        role_keys: roles.map((role) => role.id),
+        role_keys: roles.map((role) => role.key),
       });
       return result.data.result;
     } catch (e) {

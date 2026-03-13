@@ -149,11 +149,9 @@ export const AttendanceSchema = z.object({
   attendance: z.string(),
   createdAt: z
     .string()
-    .datetime()
     .transform((date) => parseDateTime(date)),
   updatedAt: z
     .string()
-    .datetime()
     .transform((date) => parseDateTime(date)),
   memberId: z.string().uuid().nullable(),
 });
