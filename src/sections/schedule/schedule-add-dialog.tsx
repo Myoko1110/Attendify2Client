@@ -1,3 +1,5 @@
+import 'dayjs/locale/ja';
+
 import type { Dayjs } from 'dayjs';
 import type Group from 'src/api/group';
 
@@ -6,6 +8,9 @@ import { useState } from 'react';
 
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
+import { jaJP } from '@mui/x-date-pickers/locales';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { TimePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import {
   Stack,
   Button,
@@ -26,6 +31,7 @@ import Schedule from 'src/api/schedule';
 import { APIError } from 'src/abc/api-error';
 import ScheduleType from 'src/abc/schedule-type';
 
+
 type Props = {
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -41,25 +47,40 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
   const [targetGenerations, setTargetGenerations] = useState<number[]>([]);
   const [targetGroups, setTargetGroups] = useState<string[]>([]);
   const [excludeGroups, setExcludeGroups] = useState<string[]>([]);
-  const [isPreAttendanceTarget, setIsPreAttendanceTarget] = useState<boolean>(false);
-  const [error, setError] = useState(false);
+  const [isPreAttendanceTarget, setIsPreAttendanceTarget] = useState<boolean>(true);
+  const [startTime, setStartTime] = useState<Dayjs | null>(null);
+  const [endTime, setEndTime] = useState<Dayjs | null>(null);
+
+  const [error, setError] = useState<string | null>(null);
 
   const handleClose = () => {
     setOpen(false);
-    setError(false);
+    setError(null);
     setScheduleType(null);
     setTargetGenerations([]);
     setTargetGroups([]);
     setExcludeGroups([]);
     setIsPreAttendanceTarget(false);
+    setStartTime(null);
+    setEndTime(null);
   };
 
   const handleSubmit = async () => {
     if (!date) return;
 
-    setError(false);
+    setError(null);
     if (!scheduleType) {
-      setError(true);
+      setError('schedule');
+      return;
+    }
+
+    if ((startTime && !endTime) || (endTime && !startTime)) {
+      setError('notBothTime');
+      return;
+    }
+
+    if (startTime && endTime && startTime.isAfter(endTime)) {
+      setError('invalidTimeSetting');
       return;
     }
 
@@ -73,6 +94,8 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
         targetGroups.length ? targetGroups : null,
         excludeGroups.length ? excludeGroups : null,
         isPreAttendanceTarget,
+        startTime,
+        endTime,
       );
       toast.success('追加しました');
       setSchedules((prev) => [
@@ -84,6 +107,8 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
           targetGroups.length ? targetGroups : null,
           excludeGroups.length ? excludeGroups : null,
           isPreAttendanceTarget,
+          startTime,
+          endTime,
         ),
       ]);
       handleClose();
@@ -173,14 +198,85 @@ export function ScheduleAddDialog({ open, setOpen, date, setSchedules, groups }:
               その他
             </ToggleButton>
           </ToggleButtonGroup>
-          <FormHelperText error>{error && '必須項目です'}</FormHelperText>
+          <FormHelperText error>
+            {error === 'schedule' && '予定の種類を選択してください'}
+          </FormHelperText>
+        </FormControl>
+
+        <FormControl error={!!(error && (startTime || endTime))}>
+          <LocalizationProvider
+            dateAdapter={AdapterDayjs}
+            adapterLocale="ja"
+            localeText={jaJP.components.MuiLocalizationProvider.defaultProps.localeText}
+          >
+            <Stack direction="row" gap={1} alignItems="center" sx={{ width: '100%' }}>
+              <TimePicker
+                label="開始時間"
+                value={startTime}
+                onChange={(v) => setStartTime(v)}
+                views={["hours", "minutes"]}
+                ampm={false}
+                slotProps={{
+                  field: { clearable: true },
+                  toolbar: { toolbarFormat: 'M月D日' },
+                  actionBar: {
+                    actions: ['today', 'accept'],
+                    sx: {
+                      '.MuiButton-root': {
+                        borderColor: 'grey.900',
+                        borderWidth: 1,
+                        borderStyle: 'solid',
+                        color: 'black',
+                      },
+                      '& .MuiButton-root:last-child': {
+                        backgroundColor: 'grey.900',
+                        color: 'white',
+                      },
+                    },
+                  },
+                }}
+              />
+              <TimePicker
+                label="終了時間"
+                value={endTime}
+                onChange={(v) => setEndTime(v)}
+                views={["hours", "minutes"]}
+                ampm={false}
+                slotProps={{
+                  field: { clearable: true },
+                  toolbar: { toolbarFormat: 'M月D日' },
+                  actionBar: {
+                    actions: ['today', 'accept'],
+                    sx: {
+                      '.MuiButton-root': {
+                        borderColor: 'grey.900',
+                        borderWidth: 1,
+                        borderStyle: 'solid',
+                        color: 'black',
+                      },
+                      '& .MuiButton-root:last-child': {
+                        backgroundColor: 'grey.900',
+                        color: 'white',
+                      },
+                    },
+                  },
+                }}
+              />
+            </Stack>
+          </LocalizationProvider>
+          <FormHelperText error>
+            {error === 'notBothTime'
+              ? '開始時間と終了時間の両方を入力してください'
+              : error === 'invalidTimeSetting'
+                ? '終了時間は開始時間より後の時間に設定してください'
+                : ''}
+          </FormHelperText>
         </FormControl>
 
         <FormControlLabel
           control={
             <Checkbox
-              defaultChecked
-              value={isPreAttendanceTarget}
+              checked={isPreAttendanceTarget}
               onChange={(e) => setIsPreAttendanceTarget(e.target.checked)}
             />
           }

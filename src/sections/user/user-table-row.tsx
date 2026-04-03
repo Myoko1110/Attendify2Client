@@ -24,6 +24,7 @@ import { StatusPeriod } from './status-period';
 import { MemberEditDialog } from './member-edit-dialog';
 import { MemberRemoveDialog } from './member-remove-dialog';
 import WeeklyParticipationCell from './weekly-participation-cell';
+import { MemberCardRegisterDialog } from './member-card-register-dialog';
 import { WeeklyParticipationEditCell } from './weekly-participation-edit-cell';
 
 // ----------------------------------------------------------------------
@@ -55,6 +56,7 @@ export const UserTableRow = memo(function UserTableRow({
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openRemoveDialog, setOpenRemoveDialog] = useState(false);
+  const [openCardRegisterDialog, setOpenCardRegisterDialog] = useState(false);
   const [openParticipation, setOpenParticipation] = useState(false);
 
   const anchorEl = useRef<HTMLDivElement | null>(null);
@@ -116,9 +118,7 @@ export const UserTableRow = memo(function UserTableRow({
         {showGroups && (
           <TableCell>
             <Stack flexDirection="row" gap={0.5}>
-              {row.groups?.map((g) => (
-                <Label key={g.id}>{g.displayName}</Label>
-              ))}
+              {row.groups?.map((g) => <Label key={g.id}>{g.displayName}</Label>)}
             </Stack>
           </TableCell>
         )}
@@ -126,15 +126,13 @@ export const UserTableRow = memo(function UserTableRow({
         {showRoles && (
           <TableCell>
             <Stack flexDirection="row" gap={0.5} flexWrap="wrap">
-              {editableRoleKeys.length > 0 ? (
-                editableRoleKeys.map((roleKey) => (
-                  <Label key={roleKey} color="default">
-                    {roleDisplayMap.get(roleKey) || roleKey}
-                  </Label>
-                ))
-              ) : (
-                '-'
-              )}
+              {editableRoleKeys.length > 0
+                ? editableRoleKeys.map((roleKey) => (
+                    <Label key={roleKey} color="default">
+                      {roleDisplayMap.get(roleKey) || roleKey}
+                    </Label>
+                  ))
+                : '-'}
             </Stack>
           </TableCell>
         )}
@@ -214,6 +212,16 @@ export const UserTableRow = memo(function UserTableRow({
             編集
           </MenuItem>
 
+          <MenuItem
+            onClick={() => {
+              setOpenCardRegisterDialog(true);
+              handleClosePopover();
+            }}
+          >
+            <Iconify icon="solar:clipboard-check-bold" />
+            カード登録
+          </MenuItem>
+
           <MenuItem onClick={handleRemoveOpen} sx={{ color: 'error.main' }}>
             <Iconify icon="solar:trash-bin-trash-bold" />
             削除
@@ -231,6 +239,12 @@ export const UserTableRow = memo(function UserTableRow({
         open={openRemoveDialog}
         setOpen={setOpenRemoveDialog}
         setGroups={setMembers}
+      />
+      <MemberCardRegisterDialog
+        member={row}
+        open={openCardRegisterDialog}
+        setOpen={setOpenCardRegisterDialog}
+        setMembers={setMembers}
       />
     </>
   );

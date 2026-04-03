@@ -59,7 +59,8 @@ export class FeliCaReader {
 
     try {
       // ペアリング済みデバイスを取得
-      let pairedDevices = await navigator.usb.getDevices();
+      const usb = navigator.usb!; // `isAvailable()` で存在チェック済みのため非null断言
+      let pairedDevices = await usb.getDevices();
       pairedDevices = pairedDevices.filter((d) =>
         this.deviceFilters.map((p) => p.productId).includes(d.productId)
       );
@@ -68,7 +69,7 @@ export class FeliCaReader {
       if (autoSelect && pairedDevices.length === 1) {
         this.device = pairedDevices[0];
       } else {
-        this.device = await navigator.usb.requestDevice({
+        this.device = await usb.requestDevice({
           filters: this.deviceFilters,
         });
       }
@@ -322,26 +323,27 @@ export class FeliCaReader {
    * データ送信 (RC-S300用)
    */
   private async send300(data: number[]): Promise<void> {
-    if (!this.device) throw new Error('デバイスが接続されていません');
-    const argData = new Uint8Array(data);
-    const dataLen = argData.length;
-    const SLOTNUMBER = 0x00;
-    const retVal = new Uint8Array(10 + dataLen);
+     if (!this.device) throw new Error('デバイスが接続されていません');
+     const argData = new Uint8Array(data);
+     const dataLen = argData.length;
+     const SLOTNUMBER = 0x00;
+     const retVal = new Uint8Array(10 + dataLen);
 
-    retVal[0] = 0x6b;
-    retVal[1] = 255 & dataLen;
-    retVal[2] = (dataLen >> 8) & 255;
-    retVal[3] = (dataLen >> 16) & 255;
-    retVal[4] = (dataLen >> 24) & 255;
-    retVal[5] = SLOTNUMBER;
-    retVal[6] = ++this.seqNumber;
+     retVal[0] = 0x6b;
+    // Avoid bitwise operators to satisfy ESLint no-bitwise rule
+    retVal[1] = dataLen % 256;
+    retVal[2] = Math.floor(dataLen / 256) % 256;
+    retVal[3] = Math.floor(dataLen / 65536) % 256;
+    retVal[4] = Math.floor(dataLen / 16777216) % 256;
+     retVal[5] = SLOTNUMBER;
+     retVal[6] = ++this.seqNumber;
 
-    if (dataLen !== 0) {
-      retVal.set(argData, 10);
-    }
+     if (dataLen !== 0) {
+       retVal.set(argData, 10);
+     }
 
-    await this.device.transferOut(this.deviceEp.out, retVal);
-    await this.sleep(50);
+     await this.device.transferOut(this.deviceEp.out, retVal);
+     await this.sleep(50);
   }
 
   /**

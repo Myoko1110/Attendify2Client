@@ -185,6 +185,21 @@ export function PreCheckEditDialog({ preCheck, open, setOpen, setPreChecks }: Pr
                   textField: { helperText: errorMsg.deadline },
                   calendarHeader: { format: 'YYYY年M月' },
                   toolbar: { toolbarFormat: 'M月D日' },
+                  actionBar: {
+                    actions: ['today', 'accept'],
+                    sx: {
+                      '.MuiButton-root': {
+                        borderColor: 'grey.900',
+                        borderWidth: 1,
+                        borderStyle: 'solid',
+                        color: 'black',
+                      },
+                      '& .MuiButton-root:last-child': {
+                        backgroundColor: 'grey.900',
+                        color: 'white',
+                      },
+                    },
+                  },
                 }}
                 views={['year', 'month', 'day', 'hours', 'minutes']}
                 sx={{ width: '100%' }}

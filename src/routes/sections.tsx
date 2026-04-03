@@ -88,8 +88,7 @@ export const routesSection: RouteObject[] = [
       <AuthLoader fallback={renderFallback()}>
         <AuthLayout
           slotProps={{
-            content: { sx: { width: '100%', maxWidth: '1200px' } },
-            main: { sx: { px: '12px!important' } },
+            content: { sx: { p: '0!important' } },
           }}
         >
           <FelicaPage />

@@ -6,6 +6,7 @@ import duration from 'dayjs/plugin/duration';
 import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import arraySupport from 'dayjs/plugin/arraySupport';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 // ----------------------------------------------------------------------
 
@@ -38,6 +39,7 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(relativeTime);
 dayjs.extend(arraySupport)
+dayjs.extend(customParseFormat);
 
 dayjs.locale('ja');
 dayjs.tz.setDefault(defaultTimezone);
@@ -53,6 +55,7 @@ export const formatPatterns = {
   backend: {
     dateTime: 'YYYY-MM-DDTHH:mm:ss.SSSSSSZ',
     date: 'YYYY-MM-DD',
+    time: 'HH:mm:ss',
   },
 };
 
@@ -117,6 +120,15 @@ export function parseDate(date: string) {
   return parsedDate;
 }
 
+export function parseTime(date: string) {
+  const parsedTime = dayjs(date, 'HH:mm:ss');
+
+  if (!parsedTime.isValid()) {
+    throw new Error(`Invalid date format: ${date}`);
+  }
+  return parsedTime;
+}
+
 export function fDateTimeBackend(datetime: Dayjs) {
   if (!datetime.isValid()) {
     throw Error('Invalid datetime value');
@@ -129,6 +141,13 @@ export function fDateBackend(date: Dayjs) {
     throw Error('Invalid date value');
   }
   return date.tz().format(formatPatterns.backend.date);
+}
+
+export function fTimeBackend(time: Dayjs) {
+  if (!time.isValid()) {
+    throw Error('Invalid time value');
+  }
+  return time.tz().format(formatPatterns.backend.time);
 }
 
 export function isBetweenDate(current: Dayjs, start: Dayjs, end: Dayjs) {

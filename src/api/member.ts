@@ -413,6 +413,7 @@ export const MemberPostSchema = z.object({
   lectureDay: z.array(z.instanceof(DayOfWeek)).transform((data) => data.map((d) => d.value)),
   isCompetitionMember: z.boolean(),
   felicaIdm: z.string().nullable(),
+  studentid: z.number().int().nullable(),
 });
 export const MemberArrayPostSchema = z.array(MemberPostSchema);
 
@@ -461,6 +462,7 @@ export const MemberSchema = z.object({
   nameKana: z.string(),
   email: z.string().email().nullable(),
   role: z.string().transform(Role.valueOf),
+  studentid: z.number().int().nullable(),
   lectureDay: z
     .array(z.string())
     .transform((data) => data.map(DayOfWeek.valueOf).sort((a, b) => (a.num > b.num ? 1 : -1))),

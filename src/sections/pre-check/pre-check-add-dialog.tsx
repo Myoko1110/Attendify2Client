@@ -166,12 +166,14 @@ export function PreCheckAddDialog({ open, setOpen, setPreChecks }: Props) {
             </Grid>
             <Grid size={{ xs: 12 }}>
               <DateTimePicker
-                label="締切日"
+                label="締切日時"
                 value={deadline}
                 onChange={(newValue) => setDeadline(newValue)}
                 slotProps={{
-                  textField: { helperText: errorMsg.endDate },
+                  field: { clearable: true },
+                  textField: { helperText: errorMsg.deadline },
                   calendarHeader: { format: 'YYYY年M月' },
+                  toolbar: { toolbarFormat: 'M月D日' },
                   actionBar: {
                     actions: ['today', 'accept'],
                     sx: {
@@ -187,7 +189,6 @@ export function PreCheckAddDialog({ open, setOpen, setPreChecks }: Props) {
                       },
                     },
                   },
-                  toolbar: { toolbarFormat: 'M月D日' },
                 }}
                 views={['year', 'month', 'day', 'hours', 'minutes']}
                 sx={{ width: '100%' }}

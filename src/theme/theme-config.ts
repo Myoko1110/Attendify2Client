@@ -30,7 +30,7 @@ export const themeConfig: ThemeConfig = {
    * Typography
    *************************************** */
   fontFamily: {
-    primary: 'Lato',
+    primary: 'Inter, Noto Sans JP, sans-serif',
     secondary: 'Barlow',
   },
   /** **************************************

@@ -20,7 +20,7 @@ export default class PreAttendance {
   constructor(
     public id: string,
     public date: Dayjs,
-    public memberId: string,
+    public memberId: string | null,
     public attendance: string,
     public reason: string | null,
     public preCheckId: string | null,
@@ -132,7 +132,7 @@ export default class PreAttendance {
 export const PreAttendanceSchema = z.object({
   id: z.string().uuid(),
   date: z.string().transform((date) => parseDate(date)),
-  memberId: z.string().uuid(),
+  memberId: z.string().uuid().nullable(),
   attendance: z.string(),
   reason: z.string().nullable(),
   preCheckId: z.string().length(10).nullable(),

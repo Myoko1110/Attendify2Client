@@ -38,10 +38,15 @@ const MemberPostSchema = z.object({
   nameKana: z.string().nonempty('必須項目です'),
   part: z.string().nonempty('必須項目です').transform(Part.valueOf),
   role: z.string().transform(Role.valueOf),
-  email: z.string().email('メールアドレスの形式が正しくありません').or(z.literal("")),
+  studentid: z.string().nullable().transform((str) => str ? Number(str) : null),
+  email: z.string().email('メールアドレスの形式が正しくありません').or(z.literal('')),
   generation: z.number().min(1, '必須項目です'),
-  lectureDay: z.string().array().transform((days) => days.map(DayOfWeek.valueOf)),
+  lectureDay: z
+    .string()
+    .array()
+    .transform((days) => days.map(DayOfWeek.valueOf)),
   isCompetitionMember: z.boolean(),
+  felicaIdm: z.string().nullable(),
 });
 
 
@@ -50,6 +55,7 @@ const initialErrorMsg = {
   nameKana: '',
   part: '',
   role: '',
+  studentid: '',
   generation: '',
   email: '',
 }
@@ -60,6 +66,7 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
   const [nameKana, setNameKana] = useState('');
   const [part, setPart] = useState('');
   const [role, setRole] = useState('member');
+  const [studentid, setStudentId] = useState('');
   const [generation, setGeneration] = useState('');
   const [email, setEmail] = useState('');
   const [lectureDay, setLectureDay] = useState<string[]>([]);
@@ -72,6 +79,7 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
     setNameKana('');
     setPart('');
     setRole('member');
+    setStudentId('');
     setGeneration('');
     setEmail('');
     setLectureDay([]);
@@ -100,6 +108,8 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
         generation: generation ? Number(generation) : 0,
         lectureDay,
         isCompetitionMember,
+        felicaIdm: null,
+        studentid,
       });
 
       handleClose();
@@ -125,7 +135,7 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>部員を登録</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Grid container spacing={2}>
@@ -158,7 +168,9 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
               <InputLabel>パート</InputLabel>
               <Select label="パート" value={part} onChange={(e) => setPart(e.target.value)}>
                 {Part.SELECTS.map((p) => (
-                  <MenuItem value={p.value} key={p.value}>{p.enShort}</MenuItem>
+                  <MenuItem value={p.value} key={p.value}>
+                    {p.enShort}
+                  </MenuItem>
                 ))}
               </Select>
               <FormHelperText>{errorMsg.part}</FormHelperText>
@@ -181,7 +193,7 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
             />
           </Grid>
 
-          <Grid size={{ xs: 12 }}>
+          <Grid size={{ xs: 8 }}>
             <TextField
               label="メールアドレス"
               value={email}
@@ -192,6 +204,18 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
               helperText={errorMsg.email}
             />
           </Grid>
+          <Grid size={{ xs: 4 }}>
+            <TextField
+              label="学籍番号"
+              value={studentid}
+              onChange={(e) => setStudentId(e.target.value)}
+              type="number"
+              fullWidth
+              error={!!errorMsg.studentid}
+              helperText={errorMsg.studentid}
+            />
+          </Grid>
+
           <Grid size={{ xs: 12 }}>
             <FormControl fullWidth>
               <Typography variant="caption">講習</Typography>
@@ -201,16 +225,19 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
                 fullWidth
               >
                 {DayOfWeek.ALL_LECTURE_DAYS.map((week) => (
-                  <ToggleButton value={week.value}>
-                    {week.jp}
-                  </ToggleButton>
+                  <ToggleButton value={week.value}>{week.jp}</ToggleButton>
                 ))}
               </ToggleButtonGroup>
             </FormControl>
           </Grid>
           <Grid size={{ xs: 12 }}>
             <FormControlLabel
-              control={<Checkbox checked={isCompetitionMember} onChange={(e) => setIsCompetitionMember(e.target.checked)} />}
+              control={
+                <Checkbox
+                  checked={isCompetitionMember}
+                  onChange={(e) => setIsCompetitionMember(e.target.checked)}
+                />
+              }
               label="コンクールメンバー"
             />
           </Grid>

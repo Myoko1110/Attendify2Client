@@ -44,6 +44,7 @@ export type AttendanceDataState = {
   handleSubmit: (overwrite?: boolean) => Promise<void>;
   existsAttendance: boolean;
   setExistsAttendance: React.Dispatch<React.SetStateAction<boolean>>;
+  isScheduleTimeValid: boolean;
 };
 
 const sortMembers = (members: Member[]) =>
@@ -71,6 +72,9 @@ export function useAttendanceData(initPart: Part): AttendanceDataState {
   const [preAttendanceData, setPreAttendanceData] = useState<PreAttendance[]>([]);
 
   const [existsAttendance, setExistsAttendance] = useState(false);
+
+  // 新しいフラグ: 当日のスケジュールに startTime/endTime が設定されているか
+  const [isScheduleTimeValid, setIsScheduleTimeValid] = useState<boolean>(true);
 
   const handleInitAttendance = useCallback(
     (s?: Schedule[], m?: Member[], preAttendances?: PreAttendance[]) => {
@@ -145,6 +149,19 @@ export function useAttendanceData(initPart: Part): AttendanceDataState {
         setPreAttendanceData(preAtt);
 
         handleInitAttendance(s, m, preAtt);
+
+        // スケジュール時刻検証: 当日のスケジュールが存在し、startTime/endTime が未設定ならフラグを false にする
+        const todaySchedules = s.filter((sc) => sc.date.isSame(today, 'day'));
+        if (todaySchedules.length > 0) {
+          const valid = todaySchedules.every((sc) => sc.startTime && sc.endTime);
+          setIsScheduleTimeValid(valid);
+          if (!valid) {
+            toast.error('本日の予定に開始/終了時刻が設定されていないため、一部機能が制限されます。');
+            console.error('Schedule time validation failed', { todaySchedules });
+          }
+        } else {
+          setIsScheduleTimeValid(true);
+        }
       } catch (e) {
         toast.error(APIError.createToastMessage(e));
       }
@@ -276,5 +293,6 @@ export function useAttendanceData(initPart: Part): AttendanceDataState {
     handleSubmit,
     existsAttendance,
     setExistsAttendance,
+    isScheduleTimeValid,
   };
 }

@@ -1,3 +1,4 @@
+import type { Dayjs } from 'dayjs';
 import type Group from 'src/api/group';
 
 import { toast } from 'sonner';
@@ -5,6 +6,9 @@ import { useState, useEffect } from 'react';
 
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
+import { jaJP } from '@mui/x-date-pickers/locales';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { TimePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import {
   Stack,
   Button,
@@ -13,13 +17,17 @@ import {
   DialogTitle,
   FormControl,
   ToggleButton,
-  DialogActions, FormControlLabel, ToggleButtonGroup,
+  DialogActions,
+  FormHelperText,
+  FormControlLabel,
+  ToggleButtonGroup,
 } from '@mui/material';
 
 import { useGrade } from 'src/hooks/grade';
 
 import Schedule from 'src/api/schedule';
 import ScheduleType from 'src/abc/schedule-type';
+
 
 
 type Props = {
@@ -37,7 +45,11 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
   const [targetGenerations, setTargetGenerations] = useState<number[]>([]);
   const [targetGroups, setTargetGroups] = useState<string[]>([]);
   const [excludeGroups, setExcludeGroups] = useState<string[]>([]);
-  const [isPreAttendanceTarget, setIsPreAttendanceTarget] = useState<boolean>(false);
+  const [isPreAttendanceTarget, setIsPreAttendanceTarget] = useState<boolean>(true);
+  const [startTime, setStartTime] = useState<Dayjs | null>(null);
+  const [endTime, setEndTime] = useState<Dayjs | null>(null);
+
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!schedule) return;
@@ -47,6 +59,8 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
     setTargetGroups(schedule.groups ?? []);
     setExcludeGroups(schedule.excludeGroups ?? []);
     setIsPreAttendanceTarget(schedule.isPreAttendanceTarget);
+    setStartTime(schedule.startTime);
+    setEndTime(schedule.endTime);
   }, [schedule]);
 
 
@@ -59,7 +73,25 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
   };
 
   const handleSubmit = async () => {
-    if (!schedule || !scheduleType) return;
+    if (!schedule) return;
+
+    setError(null);
+    if (!scheduleType) {
+      setError('schedule');
+      return;
+    }
+
+    if ((startTime && !endTime) || (endTime && !startTime)) {
+      setError('notBothTime');
+      return;
+    }
+
+    if (startTime && endTime && startTime.isAfter(endTime)) {
+      setError('invalidTimeSetting');
+      return;
+    }
+
+    setOpen(false);
 
     try {
       const type = ScheduleType.valueOf(scheduleType);
@@ -70,25 +102,28 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
         targetGroups.length ? targetGroups : null,
         excludeGroups.length ? excludeGroups : null,
         isPreAttendanceTarget,
+        startTime,
+        endTime,
       );
 
       setSchedules((prev) =>
         prev.map((s) =>
           s.dateOnly.equals(schedule.dateOnly)
             ? new Schedule(
-              schedule.date,
-              type,
-              targetGenerations.length ? targetGenerations : null,
-              targetGroups.length ? targetGroups : null,
-              excludeGroups.length ? excludeGroups : null,
-              isPreAttendanceTarget,
-            )
-            : s
-        )
+                schedule.date,
+                type,
+                targetGenerations.length ? targetGenerations : null,
+                targetGroups.length ? targetGroups : null,
+                excludeGroups.length ? excludeGroups : null,
+                isPreAttendanceTarget,
+                startTime,
+                endTime,
+              )
+            : s,
+        ),
       );
 
       toast.success('更新しました');
-      setOpen(false);
     } catch {
       toast.error('更新に失敗しました');
     }
@@ -188,12 +223,85 @@ export function ScheduleEditDialog({ open, setOpen, schedule, setSchedules, grou
               その他
             </ToggleButton>
           </ToggleButtonGroup>
+
+          <FormHelperText error>
+            {error === 'schedule' && '予定の種類を選択してください'}
+          </FormHelperText>
+        </FormControl>
+
+        <FormControl error={!!(error && (startTime || endTime))}>
+          <LocalizationProvider
+            dateAdapter={AdapterDayjs}
+            adapterLocale="ja"
+            localeText={jaJP.components.MuiLocalizationProvider.defaultProps.localeText}
+          >
+            <Stack direction="row" gap={1} alignItems="center" sx={{ width: '100%' }}>
+              <TimePicker
+                label="開始時間"
+                value={startTime}
+                onChange={(v) => setStartTime(v)}
+                views={['hours', 'minutes']}
+                ampm={false}
+                slotProps={{
+                  field: { clearable: true },
+                  toolbar: { toolbarFormat: 'M月D日' },
+                  actionBar: {
+                    actions: ['today', 'accept'],
+                    sx: {
+                      '.MuiButton-root': {
+                        borderColor: 'grey.900',
+                        borderWidth: 1,
+                        borderStyle: 'solid',
+                        color: 'black',
+                      },
+                      '& .MuiButton-root:last-child': {
+                        backgroundColor: 'grey.900',
+                        color: 'white',
+                      },
+                    },
+                  },
+                }}
+              />
+              <TimePicker
+                label="終了時間"
+                value={endTime}
+                onChange={(v) => setEndTime(v)}
+                views={['hours', 'minutes']}
+                ampm={false}
+                slotProps={{
+                  field: { clearable: true },
+                  toolbar: { toolbarFormat: 'M月D日' },
+                  actionBar: {
+                    actions: ['today', 'accept'],
+                    sx: {
+                      '.MuiButton-root': {
+                        borderColor: 'grey.900',
+                        borderWidth: 1,
+                        borderStyle: 'solid',
+                        color: 'black',
+                      },
+                      '& .MuiButton-root:last-child': {
+                        backgroundColor: 'grey.900',
+                        color: 'white',
+                      },
+                    },
+                  },
+                }}
+              />
+            </Stack>
+          </LocalizationProvider>
+          <FormHelperText error>
+            {error === 'notBothTime'
+              ? '開始時間と終了時間の両方を入力してください'
+              : error === 'invalidTimeSetting'
+                ? '終了時間は開始時間より後の時間に設定してください'
+                : ''}
+          </FormHelperText>
         </FormControl>
 
         <FormControlLabel
           control={
             <Checkbox
-              defaultChecked
               checked={isPreAttendanceTarget}
               onChange={(e) => setIsPreAttendanceTarget(e.target.checked)}
             />

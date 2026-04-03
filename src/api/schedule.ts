@@ -1,11 +1,12 @@
 import type { Dayjs } from 'dayjs';
 
 import { z } from 'zod';
+import dayjs from 'dayjs';
 import axios from 'axios';
 
 import { Month } from 'src/utils/month';
 import { DateOnly } from 'src/utils/date-only';
-import { parseDate, fDateBackend } from 'src/utils/format-time';
+import { parseDate, parseTime, fDateBackend, fTimeBackend } from 'src/utils/format-time';
 
 import { APIError } from 'src/abc/api-error';
 import ScheduleType from 'src/abc/schedule-type';
@@ -23,6 +24,8 @@ export default class Schedule {
     public groups: string[] | null,
     public excludeGroups: string[] | null,
     public isPreAttendanceTarget: boolean,
+    public startTime: Dayjs | null = null,
+    public endTime: Dayjs | null = null,
   ) {}
 
   static fromSchema(data: SchedulesResult) {
@@ -35,6 +38,8 @@ export default class Schedule {
           item.groups,
           item.excludeGroups,
           item.isPreAttendanceTarget,
+          item.startTime,
+          item.endTime,
         ),
     );
   }
@@ -55,8 +60,19 @@ export default class Schedule {
     groups: string[] | null,
     excludeGroups: string[] | null,
     isPreAttendanceTarget: boolean,
+    startTime: Dayjs | null = null,
+    endTime: Dayjs | null = null,
   ): Promise<boolean> {
-    const body = SchedulePostSchema.parse({ date, type, generations, groups, excludeGroups, isPreAttendanceTarget });
+    const body = SchedulePostSchema.parse({
+      date,
+      type,
+      generations,
+      groups,
+      excludeGroups,
+      isPreAttendanceTarget,
+      startTime,
+      endTime,
+    });
 
     try {
       const result = await axios.post('/schedule', body, {
@@ -74,9 +90,21 @@ export default class Schedule {
     groups: string[] | null,
     excludeGroups: string[] | null,
     isPreAttendanceTarget: boolean,
+
+    startTime: Dayjs | null = null,
+    endTime: Dayjs | null = null,
   ): Promise<boolean> {
     this.type = type;
-    return Schedule.add(this.date, type, generations, groups, excludeGroups, isPreAttendanceTarget);
+    return Schedule.add(
+      this.date,
+      type,
+      generations,
+      groups,
+      excludeGroups,
+      isPreAttendanceTarget,
+      startTime,
+      endTime,
+    );
   }
 
   async remove(): Promise<boolean> {
@@ -152,15 +180,33 @@ export const SchedulesSchema = z
     groups: z.string().array().nullable(),
     excludeGroups: z.string().array().nullable(),
     isPreAttendanceTarget: z.boolean(),
+    startTime: z
+      .string()
+      .nullable()
+      .transform((time) => (time ? parseTime(time) : null)),
+    endTime: z
+      .string()
+      .nullable()
+      .transform((time) => (time ? parseTime(time) : null)),
   })
   .array();
 export type SchedulesResult = z.infer<typeof SchedulesSchema>;
 
 export const SchedulePostSchema = z.object({
-  date: z.any().transform((date) => fDateBackend(date)),
+  date: z
+    .custom<Dayjs>((val) => dayjs.isDayjs(val) && val.isValid())
+    .transform((date) => fDateBackend(date)),
   type: z.instanceof(ScheduleType).transform((type) => type.value),
   generations: z.number().array().nullable(),
   groups: z.string().array().nullable(),
   excludeGroups: z.string().array().nullable(),
   isPreAttendanceTarget: z.boolean(),
+  startTime: z
+    .custom<Dayjs>((val) => dayjs.isDayjs(val) && val.isValid())
+    .nullable()
+    .transform((time) => (time ? fTimeBackend(time) : null)),
+  endTime: z
+    .custom<Dayjs>((val) => dayjs.isDayjs(val) && val.isValid())
+    .nullable()
+    .transform((time) => (time ? fTimeBackend(time) : null)),
 });

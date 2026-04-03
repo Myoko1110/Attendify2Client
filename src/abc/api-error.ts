@@ -17,8 +17,11 @@ export class APIErrorCode {
   public static INVALID_REQUEST = new APIErrorCode(301, '不正なリクエストです');
 
   public static NETWORK_CONNECTION_ERROR = new APIErrorCode(400, 'サーバーに接続できませんでした');
+  public static INVALID_SCHEDULE = new APIErrorCode(401, "不正なスケジュールです");
 
-  public static UNKNOWN_ERROR = new APIErrorCode(500, '不明なエラーが発生しました');
+  public static FELICA_NOT_FOUND = new APIErrorCode(500, "このカードは登録されていません");
+
+  public static UNKNOWN_ERROR = new APIErrorCode(-1, '不明なエラーが発生しました');
 
   private static ALL = [
     APIErrorCode.INVALID_AUTHENTICATION_CREDENTIALS,
@@ -29,6 +32,8 @@ export class APIErrorCode {
     APIErrorCode.INVALID_RESULT,
     APIErrorCode.INVALID_REQUEST,
     APIErrorCode.NETWORK_CONNECTION_ERROR,
+    APIErrorCode.FELICA_NOT_FOUND,
+    APIErrorCode.INVALID_SCHEDULE,
     APIErrorCode.UNKNOWN_ERROR,
   ]
 
@@ -65,8 +70,9 @@ export class APIError extends Error {
   }
 
   static fromError(e: unknown): APIError {
+    console.error(e);
+
     if (e instanceof ZodError) {
-      console.error(e);
       return new APIError(APIErrorCode.INVALID_RESULT);
     }
 
@@ -86,6 +92,8 @@ export class APIError extends Error {
     if (e instanceof APIError) {
       return e.description;
     }
-    return '不明なエラーが発生しました';
+    console.error(e);
+
+    return `不明なエラーが発生しました`;
   }
 }
