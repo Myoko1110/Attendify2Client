@@ -9,6 +9,7 @@ export default class Part {
   static readonly BASS = new Part('bass', 'バス', 'Bass', 'Bass', 8, "perc");
   static readonly PERCUSSION = new Part('perc', 'パーカッション', 'Percussion', 'Perc', 9);
   static readonly ADVISOR = new Part('advisor', '顧問', 'Advisor', '顧問', 0);
+  static readonly HIDDEN = new Part('hidden', '非表示', 'Hidden', '非表示', 0);
 
   static readonly UNKNOWN = new Part('unknown', '不明', 'Unknown', '-', 99);
 
@@ -23,6 +24,7 @@ export default class Part {
     Part.BASS,
     Part.PERCUSSION,
     Part.ADVISOR,
+    Part.HIDDEN,
     Part.UNKNOWN,
   ];
 
@@ -49,6 +51,7 @@ export default class Part {
     Part.BASS,
     Part.PERCUSSION,
     Part.ADVISOR,
+    Part.HIDDEN,
   ]
 
   static valueOf(value: string): Part {

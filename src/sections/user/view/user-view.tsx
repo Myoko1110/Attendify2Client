@@ -18,6 +18,7 @@ import { Iconify } from 'src/components/iconify';
 import { Loading } from 'src/components/loading';
 import { Scrollbar } from 'src/components/scrollbar';
 
+import Part from '../../../abc/part';
 import { TableNoData } from '../table-no-data';
 import { UserTableRow } from '../user-table-row';
 import { UserTableHead } from '../user-table-head';
@@ -97,7 +98,7 @@ export function UserView() {
     try {
       // includeRoles: true を追加して member.memberRoleKeys を取得する
       const m = await Member.get({ includeGroups: true, includeWeeklyParticipation: true, includeStatusPeriods: true, includeRoles: true });
-      setMembers(m);
+      setMembers(m.filter((mm) => !mm.part.equals(Part.HIDDEN)));
     } catch (e) {
       toast.error(APIError.createToastMessage(e));
     }
