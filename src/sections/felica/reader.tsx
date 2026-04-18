@@ -2,7 +2,6 @@ import type Member from 'src/api/member';
 import type { CardInfo } from 'src/felica';
 
 import dayjs from 'dayjs';
-import axios from 'axios';
 import { toast } from 'sonner';
 import { useRef, useState, useEffect } from 'react';
 
@@ -11,14 +10,15 @@ import { useFeliCaReader } from 'src/felica';
 
 import { Iconify } from 'src/components/iconify';
 
+import AttendanceLog from '../../api/attendance-log';
 import UnsupportedScreen from './unsupported-screen';
 import InvalidScheduleScreen from './invalid-schedule-screen';
-import AttendanceLog, { AttendanceLogSchema } from '../../api/attendance-log';
 
 /**
  * FeliCaカード読み取りコンポーネント
  */
 export function FeliCaReader() {
+  const isDevMode = import.meta.env.VITE_MODE === 'dev';
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
   const [prevMember, setPrevMember] = useState<Member | null>(null);
   const [currentAttendance, setCurrentAttendance] = useState<string | null>(null);
@@ -26,6 +26,8 @@ export function FeliCaReader() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clearMemberRef = useRef<NodeJS.Timeout | null>(null);
   const [time, setTime] = useState(new Date());
+  const [isDevBypassActive, setIsDevBypassActive] = useState(false);
+  const [devMockIdm, setDevMockIdm] = useState('01 23 45 67 89 AB CD EF');
 
   // AudioContext ref
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -129,7 +131,7 @@ export function FeliCaReader() {
       console.error(e);
       setCurrentMember(null);
       setCurrentAttendance(null);
-      setPhase('unknown');
+      setPhase('felica-not-found');
       timeoutRef.current = setTimeout(() => {
         setPhase('idle');
         clearMemberRef.current = setTimeout(() => {
@@ -154,6 +156,7 @@ export function FeliCaReader() {
     startReading,
     stopReading,
   } = useFeliCaReader({ onRead: handleRead, onCardRemoved: handleCardRemoved });
+  const hasReaderSession = isConnected || isDevBypassActive;
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -178,10 +181,11 @@ export function FeliCaReader() {
   }, [isReading, stopReading]);
 
   useEffect(() => {
-    if (!isAvailable) setScreen('unsupported');
-    else if (isConnected) setScreen((prev) => (prev === 'manual' ? 'manual' : 'main'));
+    if (screen === 'disableSchedule') return;
+    if (!isAvailable && !isDevMode) setScreen('unsupported');
+    else if (hasReaderSession) setScreen((prev) => (prev === 'manual' ? 'manual' : 'main'));
     else setScreen('connecting');
-  }, [isAvailable, isConnected]);
+  }, [screen, isAvailable, hasReaderSession, isDevMode]);
 
   const handleConnect = async () => {
     if (screen === 'disableSchedule') {
@@ -201,12 +205,48 @@ export function FeliCaReader() {
 
   const handleDisconnect = async () => {
     try {
-      await disconnect();
+      if (isConnected) {
+        await disconnect();
+      }
+      setIsDevBypassActive(false);
       setScreen('connecting');
       setPhase('idle');
     } catch (err) {
       console.error('切断エラー:', err);
     }
+  };
+
+  const normalizeIdm = (value: string) =>
+    value
+      .toUpperCase()
+      .replace(/[^0-9A-F\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const handleDevBypassStart = () => {
+    if (!isDevMode) return;
+    if (screen === 'disableSchedule') {
+      toast.error('当日の予定に開始/終了時刻が設定されていないため、読み取りは無効です。');
+      return;
+    }
+
+    setPausedAt(null);
+    setPhase('idle');
+    setIsDevBypassActive(true);
+    setScreen('main');
+    void ensureAudio();
+  };
+
+  const handleDevMockRead = () => {
+    if (!isDevMode || !isDevBypassActive) return;
+
+    const normalizedIdm = normalizeIdm(devMockIdm);
+    if (normalizedIdm.length !== 23) {
+      toast.error('IDmは「XX XX XX XX XX XX XX XX」形式で入力してください。');
+      return;
+    }
+
+    void handleRead({ type: 'FeliCa', id: normalizedIdm });
   };
 
   const togglePause = () => {
@@ -267,12 +307,13 @@ export function FeliCaReader() {
   };
 
   const handleManualKey = (key: string) => {
-    if (manualState !== 'input') return;
-    if (key === 'del') {
-      setManualInput((prev) => prev.slice(0, -1));
-    } else if (manualInput.length < 8) {
-      setManualInput((prev) => prev + key);
-    }
+    if (!(manualState === 'input' || manualState === "unknown")) return;
+    if (manualState === 'unknown') setManualState('input');
+      if (key === 'del') {
+        setManualInput((prev) => prev.slice(0, -1));
+      } else if (manualInput.length < 8) {
+        setManualInput((prev) => prev + key);
+      }
   };
 
   const handleManualSubmit = async () => {
@@ -281,24 +322,24 @@ export function FeliCaReader() {
       return;
     }
 
-    if (manualInput.length === 0 || manualState !== 'input') return;
+    if (manualInput.length === 0 || (manualState !== 'input' && manualState !== 'unknown')) return;
     setManualState('loading');
     try {
-      const result = await axios.post('/attendance-log/student', { studentId: manualInput });
-      const attendanceLog = AttendanceLog.fromSchema(AttendanceLogSchema.parse(result.data));
+      const attendanceLog = await AttendanceLog.createByStudentId(manualInput);
       setManualMember(attendanceLog.member);
       setManualAttendance(attendanceLog.attendance ?? null);
       setManualState('success');
       void playBeep();
       setTimeout(() => {
         handleManualClose();
-      }, 2500);
+      }, 1500);
     } catch (e) {
       console.error('manual submit failed', e);
       setManualState('unknown');
+      setManualInput('');
       setTimeout(() => {
         setManualState('input');
-        setManualInput('');
+
       }, 2000);
     }
   };
@@ -334,6 +375,36 @@ export function FeliCaReader() {
 
   const displayMember = currentMember ?? prevMember;
   const displayAttendance = currentAttendance ?? prevAttendance;
+  const isLateOrLeaveEarly = displayAttendance ? /[遅早]/.test(displayAttendance) : false;
+  const attendanceCardStyle = isLateOrLeaveEarly
+    ? {
+        background: 'linear-gradient(135deg, #fefce8, #fef3c7)',
+        border: '1px solid #fde68a',
+        badgeBackground: '#f59e0b',
+        badgeShadow: '0 4px 14px rgba(245,158,11,0.35)',
+      }
+    : {
+        background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+        border: '1px solid #bbf7d0',
+        badgeBackground: '#10b981',
+        badgeShadow: '0 4px 14px rgba(16,185,129,0.3)',
+      };
+  const isManualLateOrLeaveEarly = manualAttendance ? /[遅早]/.test(manualAttendance) : false;
+  const manualSuccessStyle = isManualLateOrLeaveEarly
+    ? {
+        border: '#fde68a',
+        textColor: '#b45309',
+        badgeBackground: '#f59e0b',
+        iconBackground: '#fef3c7',
+        iconColor: '#d97706',
+      }
+    : {
+        border: '#bbf7d0',
+        textColor: '#10b981',
+        badgeBackground: '#10b981',
+        iconBackground: '#d1fae5',
+        iconColor: '#10b981',
+      };
 
   // fetch today's schedule and validate start/end time
   useEffect(() => {
@@ -347,6 +418,7 @@ export function FeliCaReader() {
             title: '今日の予定がありません',
             message: '管理者は今日の予定を登録してください。',
           });
+          setIsDevBypassActive(false);
           setScreen('disableSchedule');
           return;
         }
@@ -356,19 +428,20 @@ export function FeliCaReader() {
             title: '予定の設定に不備があります',
             message: '予定に開始時刻/終了時刻が設定されていません。管理者は予定の設定を確認してください。',
           });
+          setIsDevBypassActive(false);
           setScreen('disableSchedule');
           console.error('Schedule validation failed for today', { todays });
         } else {
           setScheduleError(null);
-          if (!isAvailable) setScreen('unsupported');
-          else if (isConnected) setScreen((prev) => (prev === 'manual' ? 'manual' : 'main'));
+          if (!isAvailable && !isDevMode) setScreen('unsupported');
+          else if (hasReaderSession) setScreen((prev) => (prev === 'manual' ? 'manual' : 'main'));
           else setScreen('connecting');
         }
       } catch (e) {
         console.error('Failed to fetch schedules:', e);
       }
     })();
-  }, [isAvailable, isConnected]);
+  }, [isAvailable, hasReaderSession, isDevMode]);
 
   return (
     <div>
@@ -394,10 +467,7 @@ export function FeliCaReader() {
 
       {/* show schedule error at top of component if present */}
       {screen === 'disableSchedule' && (
-        <InvalidScheduleScreen
-          title={scheduleError?.title}
-          message={scheduleError?.message}
-        />
+        <InvalidScheduleScreen title={scheduleError?.title} message={scheduleError?.message} />
       )}
 
       {/* ── Unsupported ── */}
@@ -506,61 +576,58 @@ export function FeliCaReader() {
               リーダーを選択して接続してください。
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 16, marginBottom: 0 }}>
-            {[
-              ['solar:usb-bold-duotone', 'USB接続'],
-              ['solar:wifi-bold-duotone', 'NFC対応'],
-            ].map(([icon, label]) => (
-              <div
-                key={label}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  fontSize: 11,
-                  color: '#c4c9d4',
-                }}
-              >
-                <Iconify icon={icon} width={12} height={12} />
-                {label}
-              </div>
-            ))}
-          </div>
+
           <div style={{ position: 'absolute', bottom: 36, left: 36, right: 36 }}>
             <button
               onClick={handleConnect}
               className="connect-btn"
-              disabled={screen === 'disableSchedule'}
               style={{
                 width: '100%',
                 padding: '14px 0',
                 borderRadius: 14,
                 border: 'none',
-                background:
-                  screen === 'disableSchedule'
-                    ? '#e5e7eb'
-                    : 'linear-gradient(135deg, #1d4ed8, #60a5fa)',
-                color: screen === 'disableSchedule' ? '#94a3b8' : '#fff',
+                background: 'linear-gradient(135deg, #1d4ed8, #60a5fa)',
+                color: '#fff',
                 fontSize: 14,
                 fontWeight: 700,
-                cursor: screen === 'disableSchedule' ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                boxShadow:
-                  screen === 'disableSchedule' ? 'none' : '0 4px 20px rgba(37,99,235,0.35)',
+                boxShadow: '0 4px 20px rgba(37,99,235,0.35)',
                 letterSpacing: '0.02em',
               }}
             >
-              <Iconify
-                icon="solar:usb-bold-duotone"
-                width={16}
-                height={16}
-                color={screen === 'disableSchedule' ? '#94a3b8' : 'white'}
-              />
+              <Iconify icon="solar:usb-bold-duotone" width={16} height={16} color="white" />
               リーダーを接続
             </button>
+            {isDevMode && (
+              <button
+                onClick={handleDevBypassStart}
+                className="connect-btn"
+                style={{
+                  width: '100%',
+                  marginTop: 10,
+                  padding: '12px 0',
+                  borderRadius: 14,
+                  border: '1.5px solid #bfdbfe',
+                  background: '#eff6ff',
+                  color: '#1d4ed8',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  letterSpacing: '0.02em',
+                }}
+              >
+                <Iconify icon="solar:usb-bold-duotone" width={16} height={16} color="#1d4ed8" />
+                開発モードで開始（リーダー不要）
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -626,8 +693,23 @@ export function FeliCaReader() {
               <span
                 style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.12em' }}
               >
-                IC CARD READER
+                出欠記録
               </span>
+              {isDevBypassActive && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#1d4ed8',
+                    background: '#dbeafe',
+                    borderRadius: 99,
+                    padding: '3px 8px',
+                    letterSpacing: '0.06em',
+                  }}
+                >
+                  DEV
+                </span>
+              )}
             </div>
             {(phase === 'idle' || phase === 'paused') && (
               <button
@@ -810,7 +892,7 @@ export function FeliCaReader() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                opacity: phase === 'idle' || phase === 'scanning' ? 1 : 0,
+                opacity: phase === 'idle' || phase === 'scanning' || phase === "felica-not-found" ? 1 : 0,
                 transition: 'opacity 0.7s ease',
               }}
             >
@@ -926,8 +1008,8 @@ export function FeliCaReader() {
                     width: '100%',
                     borderRadius: 16,
                     padding: '12px 16px',
-                    background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
-                    border: '1px solid #bbf7d0',
+                    background: attendanceCardStyle.background,
+                    border: attendanceCardStyle.border,
                     display: 'flex',
                     alignItems: 'center',
                     gap: 14,
@@ -938,7 +1020,7 @@ export function FeliCaReader() {
                       width: 44,
                       height: 44,
                       borderRadius: 12,
-                      background: '#10b981',
+                      background: attendanceCardStyle.badgeBackground,
                       flexShrink: 0,
                       display: 'flex',
                       alignItems: 'center',
@@ -946,34 +1028,20 @@ export function FeliCaReader() {
                       color: 'white',
                       fontSize: 16,
                       fontWeight: 700,
-                      boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+                      boxShadow: attendanceCardStyle.badgeShadow,
                     }}
                   >
-                    {displayMember.name ? displayMember.name.charAt(0) : 'U'}
+                    {displayAttendance}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>
                       {displayMember.name}
                     </div>
                     <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
-                      {displayMember.id ?? ''} · {displayMember.part?.jp ?? ''}
+                      {displayMember.part.enShort}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div
-                      style={{
-                        background: '#10b981',
-                        color: 'white',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: '2px 10px',
-                        borderRadius: 99,
-                        marginBottom: 3,
-                        display: 'inline-block',
-                      }}
-                    >
-                      {displayAttendance}
-                    </div>
                     <div style={{ fontSize: 12, color: '#9ca3b8', fontFamily: "'DM Mono'" }}>
                       {formatTimeShort(new Date())}
                     </div>
@@ -1070,28 +1138,22 @@ export function FeliCaReader() {
             {phase === 'idle' && (
               <button
                 onClick={handleManualOpen}
-                disabled={screen === 'disableSchedule'}
                 style={{
                   padding: '6px 14px',
                   borderRadius: 99,
                   border: '1.5px solid #bfdbfe',
-                  background: screen === 'disableSchedule' ? '#f3f4f6' : '#eff6ff',
-                  color: screen === 'disableSchedule' ? '#9ca3af' : '#2563eb',
+                  background: '#eff6ff',
+                  color: '#2563eb',
                   fontSize: 12,
                   fontWeight: 600,
-                  cursor: screen === 'disableSchedule' ? 'not-allowed' : 'pointer',
+                  cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
                   transition: 'all 0.2s',
                 }}
               >
-                <Iconify
-                  icon="solar:keyboard-bold-duotone"
-                  width={14}
-                  height={14}
-                  color={screen === 'disableSchedule' ? '#9ca3af' : '#2563eb'}
-                />
+                <Iconify icon="solar:pen-bold" width={14} height={14} color="#2563eb" />
                 カードを忘れた
               </button>
             )}
@@ -1121,6 +1183,59 @@ export function FeliCaReader() {
               切断
             </button>
           </div>
+
+          {isDevMode && isDevBypassActive && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 96,
+                left: 36,
+                right: 36,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <input
+                value={devMockIdm}
+                onChange={(event) => {
+                  const next = event.target.value.toUpperCase();
+                  setDevMockIdm(next.slice(0, 23));
+                }}
+                placeholder="01 23 45 67 89 AB CD EF"
+                style={{
+                  flex: 1,
+                  height: 34,
+                  borderRadius: 10,
+                  border: '1px solid #bfdbfe',
+                  background: '#f8fbff',
+                  color: '#1e3a8a',
+                  fontSize: 11,
+                  padding: '0 10px',
+                  fontFamily: "'DM Mono'",
+                  letterSpacing: '0.06em',
+                }}
+              />
+              <button
+                onClick={handleDevMockRead}
+                disabled={phase !== 'idle'}
+                style={{
+                  height: 34,
+                  padding: '0 10px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: phase === 'idle' ? '#2563eb' : '#cbd5e1',
+                  color: '#ffffff',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: phase === 'idle' ? 'pointer' : 'not-allowed',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                IDmでかざす
+              </button>
+            </div>
+          )}
 
           <div
             style={{
@@ -1184,7 +1299,7 @@ export function FeliCaReader() {
                     letterSpacing: '0.12em',
                   }}
                 >
-                  IC CARD READER
+                  出欠記録
                 </span>
               </div>
               <div
@@ -1213,12 +1328,7 @@ export function FeliCaReader() {
                 transition: 'background 0.15s',
               }}
             >
-              <Iconify
-                icon="solar:arrow-left-bold-duotone"
-                width={18}
-                height={18}
-                color="#64748b"
-              />
+              <Iconify icon="mingcute:close-line" width={18} height={18} color="#64748b" />
             </button>
           </div>
 
@@ -1232,7 +1342,7 @@ export function FeliCaReader() {
                   (manualState === 'unknown'
                     ? '#fecaca'
                     : manualState === 'success'
-                      ? '#bbf7d0'
+                      ? manualSuccessStyle.border
                       : '#e2e8f0'),
                 borderRadius: 16,
                 padding: '16px 20px',
@@ -1247,7 +1357,12 @@ export function FeliCaReader() {
                 {manualState === 'success' && manualMember ? (
                   <div style={{ animation: 'fadeUp 0.3s ease' }}>
                     <div
-                      style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 2 }}
+                      style={{
+                        fontSize: 11,
+                        color: manualSuccessStyle.textColor,
+                        fontWeight: 600,
+                        marginBottom: 2,
+                      }}
                     >
                       記録しました
                     </div>
@@ -1255,12 +1370,12 @@ export function FeliCaReader() {
                       {manualMember.name}
                     </div>
                     <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
-                      {manualMember.id ?? ''} · {manualMember.part?.jp ?? ''}
+                      {manualMember.part.enShort}
                       {manualAttendance && (
                         <span
                           style={{
                             marginLeft: 8,
-                            background: '#10b981',
+                            background: manualSuccessStyle.badgeBackground,
                             color: 'white',
                             fontSize: 10,
                             fontWeight: 700,
@@ -1306,7 +1421,7 @@ export function FeliCaReader() {
                       width: 40,
                       height: 40,
                       borderRadius: '50%',
-                      background: '#d1fae5',
+                      background: manualSuccessStyle.iconBackground,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1316,7 +1431,7 @@ export function FeliCaReader() {
                       icon="solar:check-circle-bold-duotone"
                       width={24}
                       height={24}
-                      color="#10b981"
+                      color={manualSuccessStyle.iconColor}
                     />
                   </div>
                 )}
@@ -1371,7 +1486,7 @@ export function FeliCaReader() {
                   key={idx}
                   className="keypad-btn"
                   onClick={() => key !== '' && handleManualKey(key)}
-                  disabled={manualState !== 'input' || key === ''}
+                  disabled={!(manualState === 'input' || manualState === 'unknown') || key === ''}
                   style={{
                     height: 60,
                     borderRadius: 14,
@@ -1381,13 +1496,11 @@ export function FeliCaReader() {
                     fontSize: 22,
                     fontFamily: key === 'del' ? 'inherit' : "'DM Mono'",
                     fontWeight: 300,
-                    cursor:
-                      key === '' ? 'default' : manualState !== 'input' ? 'not-allowed' : 'pointer',
+                    cursor: key === '' ? 'default' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     transition: 'all 0.1s',
-                    opacity: manualState !== 'input' ? 0.35 : 1,
                     boxShadow: key !== '' && key !== 'del' ? '0 1px 4px rgba(0,0,0,0.07)' : 'none',
                   }}
                 >
@@ -1410,7 +1523,9 @@ export function FeliCaReader() {
           <div style={{ padding: '16px 36px 36px', flexShrink: 0 }}>
             <button
               onClick={handleManualSubmit}
-              disabled={manualInput.length === 0 || manualState !== 'input'}
+              disabled={
+                manualInput.length === 0 || (manualState !== 'input' && manualState !== 'unknown')
+              }
               style={{
                 width: '100%',
                 padding: '14px 0',

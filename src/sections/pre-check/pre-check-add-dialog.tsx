@@ -30,6 +30,7 @@ const initialErrorMsg = {
   endDate: '',
   description: '',
   editDeadlineDays: '',
+  deadline: '',
 };
 
 export function PreCheckAddDialog({ open, setOpen, setPreChecks }: Props) {
