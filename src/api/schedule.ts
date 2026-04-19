@@ -135,37 +135,39 @@ export default class Schedule {
       if (group) displays.push(`${group}以外`);
     });
 
-    // generationsの処理
     if (this.generations && this.generations.length > 0) {
-      // すべてのseniorとjuniorのgenerationを取得
-      const allSeniorGenerations = grade
-        .filter((gr) => gr.type === 'senior')
-        .map((gr) => gr.generation);
-      const allJuniorGenerations = grade
-        .filter((gr) => gr.type === 'junior')
-        .map((gr) => gr.generation);
+      const labelByType: Record<string, string> = {
+        senior: '高校生',
+        junior: '中学生',
+      };
+      const selectedGenerations = new Set(this.generations);
+      const gradeByGeneration = new Map(grade.map((gr) => [gr.generation, gr]));
+      const summarizeTypes = new Set<string>();
 
-      // this.generationsにすべてのseniorが含まれているか確認
-      const hasAllSenior =
-        allSeniorGenerations.length > 0 &&
-        allSeniorGenerations.every((gen) => this.generations!.includes(gen));
+      Object.entries(labelByType).forEach(([type]) => {
+        const generationsByType = grade
+          .filter((gr) => gr.type === type)
+          .map((gr) => gr.generation);
+        const hasAll =
+          generationsByType.length > 0 &&
+          generationsByType.every((gen) => selectedGenerations.has(gen));
+        if (hasAll) summarizeTypes.add(type);
+      });
 
-      // this.generationsにすべてのjuniorが含まれているか確認
-      const hasAllJunior =
-        allJuniorGenerations.length > 0 &&
-        allJuniorGenerations.every((gen) => this.generations!.includes(gen));
+      const emittedSummaryTypes = new Set<string>();
+      this.generations.forEach((generation) => {
+        const matchedGrade = gradeByGeneration.get(generation);
+        if (!matchedGrade) return;
 
-      if (hasAllSenior && !hasAllJunior) {
-        displays.push('高校生');
-      } else if (hasAllJunior && !hasAllSenior) {
-        displays.push('中学生');
-      } else {
-        // その他の場合は個別に学年名を表示
-        this.generations.forEach((g) => {
-          const gradeName = grade.find((gr) => gr.generation === g)?.displayName;
-          if (gradeName) displays.push(gradeName);
-        });
-      }
+        if (summarizeTypes.has(matchedGrade.type)) {
+          if (emittedSummaryTypes.has(matchedGrade.type)) return;
+          displays.push(labelByType[matchedGrade.type]);
+          emittedSummaryTypes.add(matchedGrade.type);
+          return;
+        }
+
+        displays.push(matchedGrade.displayName);
+      });
     }
 
     return displays.join(', ');

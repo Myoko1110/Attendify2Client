@@ -6,11 +6,12 @@ import { toast } from 'sonner';
 import { useRef, useState, useEffect } from 'react';
 
 import Schedule from 'src/api/schedule';
+import { APIError } from 'src/abc/api-error';
 import { useFeliCaReader } from 'src/felica';
+import AttendanceLog from 'src/api/attendance-log';
 
 import { Iconify } from 'src/components/iconify';
 
-import AttendanceLog from '../../api/attendance-log';
 import UnsupportedScreen from './unsupported-screen';
 import InvalidScheduleScreen from './invalid-schedule-screen';
 
@@ -29,53 +30,22 @@ export function FeliCaReader() {
   const [isDevBypassActive, setIsDevBypassActive] = useState(false);
   const [devMockIdm, setDevMockIdm] = useState('01 23 45 67 89 AB CD EF');
 
-  // AudioContext ref
-  const audioCtxRef = useRef<AudioContext | null>(null);
+  const beepAudioRef = useRef<HTMLAudioElement | null>(null);
+  const errorAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  const ensureAudio = async () => {
+  const playSound = async (audioRef: React.MutableRefObject<HTMLAudioElement | null>) => {
+    const audio = audioRef.current;
+    if (!audio) return;
     try {
-      if (!audioCtxRef.current) {
-        const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
-        if (!Ctx) return;
-        audioCtxRef.current = new Ctx();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx && ctx.state === 'suspended') await ctx.resume();
-    } catch (err) {
-      console.warn('Audio context resume failed:', err);
-    }
-  };
-
-  const playBeep = async () => {
-    try {
-      await ensureAudio();
-      const ctx = audioCtxRef.current;
-      if (!ctx) return;
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = 'sine';
-      o.frequency.value = 2093;
-      g.gain.value = 0.0001;
-      o.connect(g);
-      g.connect(ctx.destination);
-      const now = ctx.currentTime;
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(3, now + 0.005);
-      o.start(now);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-      o.stop(now + 0.3);
-      o.onended = () => {
-        try {
-          o.disconnect();
-          g.disconnect();
-        } catch {
-          /* ignore */
-        }
-      };
+      audio.currentTime = 0;
+      await audio.play();
     } catch (e) {
       console.warn('音声再生に失敗しました', e);
     }
   };
+
+  const playSuccessSound = () => void playSound(beepAudioRef);
+  const playErrorSound = () => void playSound(errorAudioRef);
 
   // --- phase / screen state ---
   type Phase = 'idle' | 'scanning' | 'success' | 'unknown' | 'paused' | 'felica-not-found';
@@ -95,6 +65,9 @@ export function FeliCaReader() {
   );
   const [manualMember, setManualMember] = useState<Member | null>(null);
   const [manualAttendance, setManualAttendance] = useState<string | null>(null);
+  const [felicaErrorMessage, setFelicaErrorMessage] = useState<string>('管理者にお問い合わせください');
+  const lastReadRef = useRef<{ id: string; at: number } | null>(null);
+  const duplicateReadWindowMs = 10_000;
 
   const handleRead = async (card: CardInfo) => {
     if (screen === 'disableSchedule') {
@@ -108,7 +81,18 @@ export function FeliCaReader() {
 
     if (card.id.length !== 23) return;
 
-    void playBeep();
+    setFelicaErrorMessage('管理者にお問い合わせください');
+
+    const now = Date.now();
+    const lastRead = lastReadRef.current;
+    const isDuplicateWithinWindow =
+      !!lastRead && lastRead.id === card.id && now - lastRead.at <= duplicateReadWindowMs;
+    if (isDuplicateWithinWindow) {
+      console.info('Ignored duplicate FeliCa read within 10 seconds');
+      return;
+    }
+    lastReadRef.current = { id: card.id, at: now };
+
     setPhase('scanning');
 
     try {
@@ -117,6 +101,8 @@ export function FeliCaReader() {
       setPrevAttendance(attendanceLog.attendance ?? null);
       setCurrentMember(attendanceLog.member);
       setCurrentAttendance(attendanceLog.attendance ?? null);
+      setFelicaErrorMessage('管理者にお問い合わせください');
+      playSuccessSound();
       setPhase('success');
       timeoutRef.current = setTimeout(() => {
         setPhase('idle');
@@ -131,6 +117,8 @@ export function FeliCaReader() {
       console.error(e);
       setCurrentMember(null);
       setCurrentAttendance(null);
+      setFelicaErrorMessage(e instanceof APIError ? e.description : '不明なエラーが発生しました');
+      playErrorSound();
       setPhase('felica-not-found');
       timeoutRef.current = setTimeout(() => {
         setPhase('idle');
@@ -164,9 +152,28 @@ export function FeliCaReader() {
   }, []);
 
   useEffect(() => {
+    // 先読みして初回再生時の遅延を減らす
+    const beep = new Audio('/assets/sounds/beep.mp3');
+    beep.preload = 'auto';
+    beep.load();
+    beepAudioRef.current = beep;
+
+    const error = new Audio('/assets/sounds/error.mp3');
+    error.preload = 'auto';
+    error.load();
+    errorAudioRef.current = error;
+
+    return () => {
+      beepAudioRef.current = null;
+      errorAudioRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     if (isReading) {
       timeoutRef.current = setTimeout(
         () => {
+          setPhase('paused');
           stopReading();
         },
         1000 * 60 * 5,
@@ -195,7 +202,6 @@ export function FeliCaReader() {
 
     try {
       await connect();
-      void ensureAudio();
       startReading();
       setScreen('main');
     } catch (err) {
@@ -234,7 +240,6 @@ export function FeliCaReader() {
     setPhase('idle');
     setIsDevBypassActive(true);
     setScreen('main');
-    void ensureAudio();
   };
 
   const handleDevMockRead = () => {
@@ -269,20 +274,6 @@ export function FeliCaReader() {
       }
     }
   };
-
-  useEffect(
-    () => () => {
-      if (audioCtxRef.current) {
-        try {
-          audioCtxRef.current.close();
-        } catch {
-          /* ignore */
-        }
-        audioCtxRef.current = null;
-      }
-    },
-    [],
-  );
 
   // Manual input handlers
   const handleManualOpen = () => {
@@ -329,12 +320,13 @@ export function FeliCaReader() {
       setManualMember(attendanceLog.member);
       setManualAttendance(attendanceLog.attendance ?? null);
       setManualState('success');
-      void playBeep();
+      playSuccessSound();
       setTimeout(() => {
         handleManualClose();
       }, 1500);
     } catch (e) {
       console.error('manual submit failed', e);
+      playErrorSound();
       setManualState('unknown');
       setManualInput('');
       setTimeout(() => {
@@ -1095,10 +1087,7 @@ export function FeliCaReader() {
                 }}
               >
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#dc2626' }}>
-                  登録されていないカードです
-                </div>
-                <div style={{ fontSize: 12, color: '#f87171', marginTop: 3 }}>
-                  管理者にお問い合わせください
+                  {felicaErrorMessage}
                 </div>
               </div>
             </div>
@@ -1154,7 +1143,7 @@ export function FeliCaReader() {
                 }}
               >
                 <Iconify icon="solar:pen-bold" width={14} height={14} color="#2563eb" />
-                カードを忘れた
+                カードがない
               </button>
             )}
             <button

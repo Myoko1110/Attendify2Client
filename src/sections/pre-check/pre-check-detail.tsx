@@ -15,7 +15,6 @@ import Schedule from 'src/api/schedule';
 
 import { Scrollbar } from 'src/components/scrollbar';
 
-import Part from '../../abc/part';
 import { emptyRows } from './utils';
 import { useTable } from '../user/view';
 import { TableEmptyRows } from '../user/table-empty-rows';
@@ -130,7 +129,7 @@ export function PreCheckDetail({ open, setOpen, preCheck }: Props) {
   useEffect(() => {
     (async () => {
       const all = await Member.get({ includeStatusPeriods: true });
-      const mem = all.filter((member) => !member.part.equals(Part.ADVISOR));
+      const mem = all.filter((member) => member.part.isCommon);
       setAllMembers(mem);
 
       const pre = await preCheck.getAttendances();

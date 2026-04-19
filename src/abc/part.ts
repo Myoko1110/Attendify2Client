@@ -80,6 +80,10 @@ export default class Part {
     return this.value === other.value;
   }
 
+  get isCommon(): boolean {
+    return Part.COMMON.includes(this);
+  }
+
   constructor(
     public value: string,
     public jp: string,

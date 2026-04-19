@@ -2,24 +2,34 @@ import { ZodError } from 'zod';
 import { AxiosError } from 'axios';
 
 export class APIErrorCode {
-  public static INVALID_AUTHENTICATION_CREDENTIALS = new APIErrorCode(100, 'ログインに失敗しました。もう一度お試しください。');
+  public static INVALID_AUTHENTICATION_CREDENTIALS = new APIErrorCode(
+    100,
+    'ログインに失敗しました。もう一度お試しください。',
+  );
 
   public static PERMISSION_DENIED = new APIErrorCode(101, '権限がありません');
 
   public static AUTHENTICATION_FAILED = new APIErrorCode(102, '認証に失敗しました');
 
   public static ALREADY_EXISTS_ATTENDANCE = new APIErrorCode(200, 'すでに出欠情報があります');
+  public static INVALID_CHECK_OUT_TIME = new APIErrorCode(
+    201,
+    '退室記録を開始時間前につけることはできません',
+  );
 
-  public static ALREADY_EXISTS_MEMBER_EMAIL = new APIErrorCode(201, 'すでに同じメールアドレスが登録されています');
+  public static ALREADY_EXISTS_MEMBER_EMAIL = new APIErrorCode(
+    202,
+    'すでに同じメールアドレスが登録されています',
+  );
 
   public static INVALID_RESULT = new APIErrorCode(300, '不正な結果です');
 
   public static INVALID_REQUEST = new APIErrorCode(301, '不正なリクエストです');
 
   public static NETWORK_CONNECTION_ERROR = new APIErrorCode(400, 'サーバーに接続できませんでした');
-  public static INVALID_SCHEDULE = new APIErrorCode(401, "不正なスケジュールです");
+  public static INVALID_SCHEDULE = new APIErrorCode(401, '不正なスケジュールです');
 
-  public static FELICA_NOT_FOUND = new APIErrorCode(500, "このカードは登録されていません");
+  public static FELICA_NOT_FOUND = new APIErrorCode(500, 'このカードは登録されていません');
 
   public static UNKNOWN_ERROR = new APIErrorCode(-1, '不明なエラーが発生しました');
 
@@ -28,6 +38,7 @@ export class APIErrorCode {
     APIErrorCode.PERMISSION_DENIED,
     APIErrorCode.AUTHENTICATION_FAILED,
     APIErrorCode.ALREADY_EXISTS_ATTENDANCE,
+    APIErrorCode.INVALID_CHECK_OUT_TIME,
     APIErrorCode.ALREADY_EXISTS_MEMBER_EMAIL,
     APIErrorCode.INVALID_RESULT,
     APIErrorCode.INVALID_REQUEST,
@@ -35,7 +46,7 @@ export class APIErrorCode {
     APIErrorCode.FELICA_NOT_FOUND,
     APIErrorCode.INVALID_SCHEDULE,
     APIErrorCode.UNKNOWN_ERROR,
-  ]
+  ];
 
   static valueOf(code: number): APIErrorCode | null {
     return APIErrorCode.ALL.find((value) => value.code === code) || null;

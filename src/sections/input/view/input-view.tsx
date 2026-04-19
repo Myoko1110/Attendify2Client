@@ -34,7 +34,7 @@ export function InputView() {
   const hasNotPermission = !!self && !self.hasPermission('attendance:write');
 
   const selfPart = self?.part;
-  const initPart = selfPart !== undefined && selfPart !== Part.ADVISOR ? selfPart : Part.FLUTE;
+  const initPart = selfPart !== undefined && selfPart.isCommon ? selfPart : Part.FLUTE;
 
   const {
     today,
@@ -55,7 +55,6 @@ export function InputView() {
     handleSubmit,
     existsAttendance,
     setExistsAttendance,
-    isScheduleTimeValid,
   } = useAttendanceData(initPart);
 
   const [pickerMemberId, setPickerMemberId] = useState<string | null>(null);
@@ -185,12 +184,6 @@ export function InputView() {
                 </Alert>
               )}
 
-              {!isScheduleTimeValid && (
-                <Alert severity="error" sx={{ mt: 1 }}>
-                  当日の予定に開始時刻/終了時刻が設定されていないため、送信は無効化されています。
-                </Alert>
-              )}
-
               {!date ||
                 (!schedules.find((s) => s.dateOnly.equals(dateOnly)) && (
                   <Alert severity="warning" sx={{ mt: 1 }}>
@@ -300,7 +293,7 @@ export function InputView() {
                   variant="contained"
                   color="inherit"
                   onClick={() => handleSubmit()}
-                  disabled={hasNotPermission || !isScheduleTimeValid}
+                  disabled={hasNotPermission}
                   sx={{ display: 'block' }}
                 >
                   送信
