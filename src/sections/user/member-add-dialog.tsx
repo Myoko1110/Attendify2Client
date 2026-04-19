@@ -5,9 +5,7 @@ import { z, ZodError } from 'zod';
 import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
-import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 import {
   Dialog,
@@ -15,9 +13,8 @@ import {
   InputLabel,
   DialogTitle,
   FormControl,
-  ToggleButton,
   DialogContent,
-  DialogActions, FormHelperText, FormControlLabel, ToggleButtonGroup,
+  DialogActions, FormHelperText,
 } from '@mui/material';
 
 import { DayOfWeek } from 'src/utils/day-of-week';
@@ -73,6 +70,19 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
   const [isCompetitionMember, setIsCompetitionMember] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState({ ...initialErrorMsg });
+
+  const tryAutoFillStudentIdFromEmail = (value: string) => {
+    // Manual input or existing value takes precedence over assist behavior.
+    if (studentid) return;
+
+    const localPart = value.trim().split('@')[0];
+    if (localPart.length < 8) return;
+
+    const head8 = localPart.slice(0, 8);
+    if (!/^\d{8}$/.test(head8)) return;
+
+    setStudentId(head8);
+  };
 
   const reset = () => {
     setName('');
@@ -198,6 +208,7 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
               label="メールアドレス"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={(e) => tryAutoFillStudentIdFromEmail(e.target.value)}
               type="email"
               fullWidth
               error={!!errorMsg.email}
@@ -213,32 +224,6 @@ export function MemberAddDialog({ open, setOpen, setMembers }: Props) {
               fullWidth
               error={!!errorMsg.studentid}
               helperText={errorMsg.studentid}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12 }}>
-            <FormControl fullWidth>
-              <Typography variant="caption">講習</Typography>
-              <ToggleButtonGroup
-                value={lectureDay}
-                onChange={(_e, val) => setLectureDay(val)}
-                fullWidth
-              >
-                {DayOfWeek.ALL_LECTURE_DAYS.map((week) => (
-                  <ToggleButton value={week.value}>{week.jp}</ToggleButton>
-                ))}
-              </ToggleButtonGroup>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={isCompetitionMember}
-                  onChange={(e) => setIsCompetitionMember(e.target.checked)}
-                />
-              }
-              label="コンクールメンバー"
             />
           </Grid>
         </Grid>

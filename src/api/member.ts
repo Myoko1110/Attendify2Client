@@ -28,6 +28,7 @@ export default class Member {
     public nameKana: string,
     public email: string | null,
     public role: Role,
+    public studentid: number | null,
     public lectureDay: DayOfWeek[],
     public isCompetitionMember: boolean,
     public felicaIdm?: string | null,
@@ -50,6 +51,7 @@ export default class Member {
       data.nameKana,
       data.email,
       data.role,
+      data.studentid,
       data.lectureDay,
       data.isCompetitionMember,
       data.felicaIdm,
@@ -187,6 +189,7 @@ export default class Member {
       const generation = update.generation || this.generation;
       const email = update.email || this.email;
       const role = update.role || this.role;
+      const studentid = update.studentid === undefined ? this.studentid : update.studentid;
       const lectureDay = update.lectureDay || this.lectureDay;
       const isCompetitionMember = update.isCompetitionMember || this.isCompetitionMember;
       const felicaIdm = update.felicaIdm || this.felicaIdm;
@@ -199,6 +202,7 @@ export default class Member {
         nameKana,
         email,
         role,
+        studentid,
         lectureDay,
         isCompetitionMember,
         felicaIdm,
@@ -376,6 +380,7 @@ export default class Member {
       this.nameKana,
       this.email,
       this.role,
+      this.studentid,
       this.lectureDay,
       this.isCompetitionMember,
       this.felicaIdm,

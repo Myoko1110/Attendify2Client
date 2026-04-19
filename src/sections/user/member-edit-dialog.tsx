@@ -41,6 +41,7 @@ const MemberPostSchema = z.object({
   nameKana: z.string().nonempty('必須項目です'),
   part: z.string().nonempty('必須項目です').transform(Part.valueOf),
   role: z.string().transform(Role.valueOf),
+  studentid: z.string().nullable().transform((str) => (str ? Number(str) : null)),
   email: z.string().email('メールアドレスの形式が正しくありません').or(z.literal('')),
   generation: z.number().min(1, '必須項目です'),
   lectureDay: z.string().array().transform((days) => days.map(DayOfWeek.valueOf)),
@@ -52,6 +53,7 @@ const initialErrorMsg = {
   nameKana: '',
   part: '',
   role: '',
+  studentid: '',
   generation: '',
   email: '',
 };
@@ -60,6 +62,7 @@ export function MemberEditDialog({ member, open, setOpen, setGroups }: Props) {
   const [name, setName] = useState(member.name);
   const [nameKana, setNameKana] = useState(member.nameKana);
   const [part, setPart] = useState(member.part.value);
+  const [studentid, setStudentId] = useState(member.studentid?.toString() || '');
   const [generation, setGeneration] = useState(member.generation.toString());
   const [email, setEmail] = useState(member.email || '');
   const [lectureDay, setLectureDay] = useState<string[]>(member.lectureDay.map((w) => w.value));
@@ -69,10 +72,24 @@ export function MemberEditDialog({ member, open, setOpen, setGroups }: Props) {
 
   const [errorMsg, setErrorMsg] = useState({ ...initialErrorMsg });
 
+  const tryAutoFillStudentIdFromEmail = (value: string) => {
+    // Manual input or existing value takes precedence over assist behavior.
+    if (studentid) return;
+
+    const localPart = value.trim().split('@')[0];
+    if (localPart.length < 8) return;
+
+    const head8 = localPart.slice(0, 8);
+    if (!/^\d{8}$/.test(head8)) return;
+
+    setStudentId(head8);
+  };
+
   const reset = () => {
     setName(member.name);
     setNameKana(member.nameKana);
     setPart(member.part.value);
+    setStudentId(member.studentid?.toString() || '');
     setGeneration(member.generation.toString());
     setEmail(member.email || '');
     setLectureDay(member.lectureDay.map((w) => w.value));
@@ -99,6 +116,7 @@ export function MemberEditDialog({ member, open, setOpen, setGroups }: Props) {
         part,
         // legacy role is still required by current member update API; keep existing value
         role: member.role?.value || 'member',
+        studentid,
         email,
         generation: generation ? Number(generation) : 0,
         lectureDay,
@@ -143,6 +161,7 @@ export function MemberEditDialog({ member, open, setOpen, setGroups }: Props) {
     setName(member.name);
     setNameKana(member.nameKana);
     setPart(member.part.value);
+    setStudentId(member.studentid?.toString() || '');
     setGeneration(member.generation.toString());
     setEmail(member.email || '');
     setLectureDay(member.lectureDay.map((w) => w.value));
@@ -227,6 +246,31 @@ export function MemberEditDialog({ member, open, setOpen, setGroups }: Props) {
             />
           </Grid>
 
+          <Grid size={{ xs: 8 }}>
+            <TextField
+              label="メールアドレス"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onBlur={(e) => tryAutoFillStudentIdFromEmail(e.target.value)}
+              type="email"
+              fullWidth
+              error={!!errorMsg.email}
+              helperText={errorMsg.email}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 4 }}>
+            <TextField
+              label="学籍番号"
+              value={studentid}
+              onChange={(e) => setStudentId(e.target.value)}
+              type="number"
+              fullWidth
+              error={!!errorMsg.studentid}
+              helperText={errorMsg.studentid}
+            />
+          </Grid>
+
           <Grid size={{ xs: 12 }}>
             <FormControl fullWidth>
               <InputLabel>ロール</InputLabel>
@@ -258,18 +302,6 @@ export function MemberEditDialog({ member, open, setOpen, setGroups }: Props) {
                 ))}
               </Select>
             </FormControl>
-          </Grid>
-
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              label="メールアドレス"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              fullWidth
-              error={!!errorMsg.email}
-              helperText={errorMsg.email}
-            />
           </Grid>
         </Grid>
       </DialogContent>
