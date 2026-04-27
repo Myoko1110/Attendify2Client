@@ -183,16 +183,16 @@ export default class Member {
     try {
       await axios.patch(`/member/${this.id}`, body);
 
-      const name = update.name || this.name;
-      const nameKana = update.nameKana || this.nameKana;
-      const part = update.part || this.part;
-      const generation = update.generation || this.generation;
-      const email = update.email || this.email;
-      const role = update.role || this.role;
+      const name = update.name ?? this.name;
+      const nameKana = update.nameKana ?? this.nameKana;
+      const part = update.part ?? this.part;
+      const generation = update.generation ?? this.generation;
+      const email = update.email ?? this.email;
+      const role = update.role ?? this.role;
       const studentid = update.studentid === undefined ? this.studentid : update.studentid;
-      const lectureDay = update.lectureDay || this.lectureDay;
-      const isCompetitionMember = update.isCompetitionMember || this.isCompetitionMember;
-      const felicaIdm = update.felicaIdm || this.felicaIdm;
+      const lectureDay = update.lectureDay ?? this.lectureDay;
+      const isCompetitionMember = update.isCompetitionMember ?? this.isCompetitionMember;
+      const felicaIdm = update.felicaIdm === undefined ? this.felicaIdm : update.felicaIdm;
 
       return new Member(
         this.id,

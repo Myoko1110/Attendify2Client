@@ -22,6 +22,7 @@ export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const PreCheckPage = lazy(() => import('src/pages/pre-check'));
 export const PreCheckFormPage = lazy(() => import('src/pages/pre-check-form'));
 export const FelicaPage = lazy(() => import('src/pages/felica'));
+export const BarcodePage = lazy(() => import('src/pages/barcode'));
 export const SettingsPage = lazy(() => import('src/pages/settings'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 export const Page403 = lazy(() => import('src/pages/page-forbidden'));
@@ -92,6 +93,20 @@ export const routesSection: RouteObject[] = [
           }}
         >
           <FelicaPage />
+        </AuthLayout>
+      </AuthLoader>
+    ),
+  },
+  {
+    path: 'barcode',
+    element: (
+      <AuthLoader fallback={renderFallback()}>
+        <AuthLayout
+          slotProps={{
+            content: { sx: { p: '0!important' } },
+          }}
+        >
+          <BarcodePage />
         </AuthLayout>
       </AuthLoader>
     ),

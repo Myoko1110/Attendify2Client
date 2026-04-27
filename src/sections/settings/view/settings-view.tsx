@@ -203,7 +203,7 @@ export function SettingsView() {
                   <Divider />
                   <CardContent>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      交通系ICを使用して出欠をとる際の、空欄の部員に対して自動で欠席を入力するスケジューラを開始・停止します。
+                      交通系ICを使用して出欠を取る際に使用する、空欄の部員に対して自動で欠席を入力するスケジューラを開始・停止します。
                       <br />
                       その日の予定がない /
                       その日の予定に開始または終了時間が設定されていない場合は、スケジューラは自動で停止します。

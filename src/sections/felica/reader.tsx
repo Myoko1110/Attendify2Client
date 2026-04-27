@@ -767,7 +767,9 @@ export function FeliCaReader() {
               transform: 'translateX(-50%)',
               transition: 'box-shadow 0.7s ease',
               animation: phase === 'idle' ? 'bPulse 2.2s ease-in-out infinite' : 'none',
+              cursor: "pointer"
             }}
+            onClick={togglePause}
           >
             <div
               style={{
@@ -959,9 +961,6 @@ export function FeliCaReader() {
             >
               <div style={{ fontSize: 15, fontWeight: 600, color: '#374151' }}>
                 ICカードをかざしてください
-              </div>
-              <div style={{ fontSize: 11, color: '#c4c9d4', marginTop: 5 }}>
-                Suica · PASMO · ICOCA 対応
               </div>
             </div>
             <div
@@ -1225,21 +1224,6 @@ export function FeliCaReader() {
               </button>
             </div>
           )}
-
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 24,
-              left: 0,
-              right: 0,
-              textAlign: 'center',
-              fontSize: 10,
-              color: '#d1d5db',
-              letterSpacing: '0.06em',
-            }}
-          >
-            Suica · PASMO · ICOCA · Kitaca · TOICA · manaca · PiTaPa · SUGOCA
-          </div>
         </div>
       )}
 

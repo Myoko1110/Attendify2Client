@@ -26,6 +26,7 @@ import { TableEmptyRows } from '../table-empty-rows';
 import { MemberAddDialog } from '../member-add-dialog';
 import { UserTableToolbar } from '../user-table-toolbar';
 import { emptyRows, applyFilter, getComparator } from '../utils';
+import { MemberCardRegisterDialog } from '../member-card-register-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -37,6 +38,7 @@ export function UserView() {
 
   const [filterName, setFilterName] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const [cardRegisterOpen, setCardRegisterOpen] = useState(false);
   const [showGroups, setShowGroups] = useState(false);
   const [showRoles, setShowRoles] = useState(true);
 
@@ -121,14 +123,24 @@ export function UserView() {
         <Typography variant="h4" sx={{ flexGrow: 1 }}>
           部員
         </Typography>
-        <Button
-          variant="contained"
-          color="inherit"
-          startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={() => setAddOpen(true)}
-        >
-          登録
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="contained"
+            color="inherit"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={() => setAddOpen(true)}
+          >
+            登録
+          </Button>
+          <Button
+            variant="outlined"
+            color="inherit"
+            startIcon={<Iconify icon="solar:card-broken" />}
+            onClick={() => setCardRegisterOpen(true)}
+          >
+            カード登録
+          </Button>
+        </Box>
       </Box>
 
       <Card
@@ -208,6 +220,12 @@ export function UserView() {
         )}
       </Card>
       <MemberAddDialog open={addOpen} setOpen={setAddOpen} setMembers={setMembers} />
+      <MemberCardRegisterDialog
+        open={cardRegisterOpen}
+        setOpen={setCardRegisterOpen}
+        members={members}
+        setMembers={setMembers}
+      />
     </DashboardContent>
   );
 }
