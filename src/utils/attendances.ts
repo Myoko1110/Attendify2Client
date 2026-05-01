@@ -37,6 +37,7 @@ const attendanceScore: Record<string, number> = {
   講習: NaN,
   遅刻: 50,
   早退: 50,
+  遅早: 50,
   無欠: 0,
 };
 
@@ -46,5 +47,6 @@ const actualAttendanceScore: Record<string, number> = {
   講習: 0,
   遅刻: 50,
   早退: 50,
+  遅早: 50,
   無欠: 0,
 };

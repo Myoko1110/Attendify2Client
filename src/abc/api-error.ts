@@ -16,9 +16,10 @@ export class APIErrorCode {
     201,
     '退室記録を開始時間前につけることはできません',
   );
+  public static DURATION_TOO_SHORT = new APIErrorCode(202, "入室から5分以上経過しないと、退室を記録できません");
 
   public static ALREADY_EXISTS_MEMBER_EMAIL = new APIErrorCode(
-    202,
+    203,
     'すでに同じメールアドレスが登録されています',
   );
 
@@ -39,6 +40,7 @@ export class APIErrorCode {
     APIErrorCode.AUTHENTICATION_FAILED,
     APIErrorCode.ALREADY_EXISTS_ATTENDANCE,
     APIErrorCode.INVALID_CHECK_OUT_TIME,
+    APIErrorCode.DURATION_TOO_SHORT,
     APIErrorCode.ALREADY_EXISTS_MEMBER_EMAIL,
     APIErrorCode.INVALID_RESULT,
     APIErrorCode.INVALID_REQUEST,

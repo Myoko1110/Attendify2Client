@@ -65,6 +65,7 @@ export function FeliCaReader() {
   );
   const [manualMember, setManualMember] = useState<Member | null>(null);
   const [manualAttendance, setManualAttendance] = useState<string | null>(null);
+  const [manualErrorMessage, setManualErrorMessage] = useState<string>('管理者にお問い合わせください');
   const [felicaErrorMessage, setFelicaErrorMessage] = useState<string>('管理者にお問い合わせください');
   const lastReadRef = useRef<{ id: string; at: number } | null>(null);
   const duplicateReadWindowMs = 10_000;
@@ -286,6 +287,7 @@ export function FeliCaReader() {
     setManualState('input');
     setManualMember(null);
     setManualAttendance(null);
+    setManualErrorMessage('管理者にお問い合わせください');
     setScreen('manual');
   };
 
@@ -295,6 +297,7 @@ export function FeliCaReader() {
     setManualState('input');
     setManualMember(null);
     setManualAttendance(null);
+    setManualErrorMessage('管理者にお問い合わせください');
   };
 
   const handleManualKey = (key: string) => {
@@ -327,11 +330,11 @@ export function FeliCaReader() {
     } catch (e) {
       console.error('manual submit failed', e);
       playErrorSound();
+      setManualErrorMessage(e instanceof APIError ? e.description : '不明なエラーが発生しました');
       setManualState('unknown');
       setManualInput('');
       setTimeout(() => {
         setManualState('input');
-
       }, 2000);
     }
   };
@@ -704,30 +707,54 @@ export function FeliCaReader() {
               )}
             </div>
             {(phase === 'idle' || phase === 'paused') && (
-              <button
-                onClick={togglePause}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '6px 14px',
-                  borderRadius: 99,
-                  border: '1.5px solid ' + (phase === 'paused' ? '#f59e0b' : '#e5e7eb'),
-                  background: phase === 'paused' ? '#fef3c7' : '#f9fafb',
-                  color: phase === 'paused' ? '#b45309' : '#6b7280',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-              >
-                <Iconify
-                  icon={phase === 'paused' ? 'solar:play-bold' : 'solar:pause-bold'}
-                  width={12}
-                  height={12}
-                />
-                {phase === 'paused' ? '再開' : '一時停止'}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={togglePause}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '6px 14px',
+                    borderRadius: 99,
+                    border: '1.5px solid ' + (phase === 'paused' ? '#f59e0b' : '#e5e7eb'),
+                    background: phase === 'paused' ? '#fef3c7' : '#f9fafb',
+                    color: phase === 'paused' ? '#b45309' : '#6b7280',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Iconify
+                    icon={phase === 'paused' ? 'solar:play-bold' : 'solar:pause-bold'}
+                    width={12}
+                    height={12}
+                  />
+                  {phase === 'paused' ? '再開' : '一時停止'}
+                </button>
+
+                {/* 切断ボタンを一時停止の横に移動 */}
+                <button
+                  onClick={handleDisconnect}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 12px',
+                    borderRadius: 99,
+                    border: '1.5px solid #e5e7eb',
+                    background: '#f9fafb',
+                    color: '#6b7280',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Iconify icon="mingcute:close-line" width={14} height={14} color="#9ca3af" />
+                  切断
+                </button>
+              </div>
             )}
           </div>
 
@@ -767,7 +794,7 @@ export function FeliCaReader() {
               transform: 'translateX(-50%)',
               transition: 'box-shadow 0.7s ease',
               animation: phase === 'idle' ? 'bPulse 2.2s ease-in-out infinite' : 'none',
-              cursor: "pointer"
+              cursor: 'pointer',
             }}
             onClick={togglePause}
           >
@@ -886,7 +913,8 @@ export function FeliCaReader() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                opacity: phase === 'idle' || phase === 'scanning' || phase === "felica-not-found" ? 1 : 0,
+                opacity:
+                  phase === 'idle' || phase === 'scanning' || phase === 'felica-not-found' ? 1 : 0,
                 transition: 'opacity 0.7s ease',
               }}
             >
@@ -1127,49 +1155,25 @@ export function FeliCaReader() {
               <button
                 onClick={handleManualOpen}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: 99,
+                  padding: '10px 18px',
+                  minHeight: 44,
+                  borderRadius: 14,
                   border: '1.5px solid #bfdbfe',
                   background: '#eff6ff',
                   color: '#2563eb',
-                  fontSize: 12,
-                  fontWeight: 600,
+                  fontSize: 14,
+                  fontWeight: 700,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: 10,
                   transition: 'all 0.2s',
                 }}
               >
-                <Iconify icon="solar:pen-bold" width={14} height={14} color="#2563eb" />
+                <Iconify icon="solar:pen-bold" width={16} height={16} color="#2563eb" />
                 カードがない
               </button>
             )}
-            <button
-              onClick={handleDisconnect}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 99,
-                border: '1.5px solid #e5e7eb',
-                background: '#f9fafb',
-                color: '#6b7280',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                transition: 'all 0.2s',
-              }}
-            >
-              <Iconify
-                icon="solar:plug-circle-bold-duotone"
-                width={14}
-                height={14}
-                color="#9ca3af"
-              />
-              切断
-            </button>
           </div>
 
           {isDevMode && isDevBypassActive && (
@@ -1364,10 +1368,7 @@ export function FeliCaReader() {
                 ) : manualState === 'unknown' ? (
                   <div style={{ animation: 'fadeUp 0.3s ease' }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#dc2626' }}>
-                      未登録の学籍番号です
-                    </div>
-                    <div style={{ fontSize: 11, color: '#f87171', marginTop: 2 }}>
-                      もう一度確認してください
+                      {manualErrorMessage}
                     </div>
                   </div>
                 ) : manualState === 'loading' ? (

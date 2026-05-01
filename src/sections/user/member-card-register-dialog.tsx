@@ -178,7 +178,6 @@ export function MemberCardRegisterDialog({ member, open, setOpen, members, setMe
 
   const {
     isConnected,
-    isReading,
     error,
     isAvailable,
     connect,
@@ -321,6 +320,16 @@ export function MemberCardRegisterDialog({ member, open, setOpen, members, setMe
         </Alert>
       )}
 
+      <div
+        style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+        }}
+      >
+
       <Button
         variant="contained"
         onClick={() => void handleConnect()}
@@ -333,6 +342,7 @@ export function MemberCardRegisterDialog({ member, open, setOpen, members, setMe
           fontWeight: 700,
           boxShadow: '0 4px 20px rgba(37,99,235,0.35)',
           letterSpacing: '0.02em',
+          width: 300,
           '&:hover': {
             background: 'linear-gradient(135deg, #1d4ed8, #60a5fa)',
             boxShadow: '0 8px 26px rgba(37,99,235,0.28)',
@@ -345,6 +355,7 @@ export function MemberCardRegisterDialog({ member, open, setOpen, members, setMe
       >
         {isConnecting ? '接続中...' : 'リーダーを接続'}
       </Button>
+      </div>
     </Stack>
   );
 
@@ -362,7 +373,7 @@ export function MemberCardRegisterDialog({ member, open, setOpen, members, setMe
           scrollButtons="auto"
         >
           {Part.COMMON.map((partItem) => (
-            <Tab key={partItem.value} value={partItem} label={partItem.jp} />
+            <Tab key={partItem.value} value={partItem} label={partItem.enShort} />
           ))}
         </Tabs>
 
@@ -390,7 +401,6 @@ export function MemberCardRegisterDialog({ member, open, setOpen, members, setMe
                         {generationMembers.map((target) => (
                           <Button
                             key={target.id}
-                            variant="outlined"
                             color="inherit"
                             fullWidth
                             disabled={isRegistering}
@@ -411,12 +421,9 @@ export function MemberCardRegisterDialog({ member, open, setOpen, members, setMe
                               }}
                             >
                               <Typography variant="subtitle2">{target.name}</Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {target.nameKana}
-                              </Typography>
                             </Box>
                             <Chip
-                              label={target.felicaIdm ? '登録済み' : '未登録'}
+                              label={target.felicaIdm ? '登録済' : '未登録'}
                               color={target.felicaIdm ? 'success' : 'default'}
                               variant={target.felicaIdm ? 'filled' : 'outlined'}
                               size="small"
@@ -447,30 +454,23 @@ export function MemberCardRegisterDialog({ member, open, setOpen, members, setMe
         <Alert severity="info">
           {isDirectMode
             ? 'カードをかざして、この部員のFeliCa IDm を登録してください。'
-            : 'カードをかざしてください。登録が完了すると一覧に戻ります。'}
+            : 'カードをかざしてください。'}
         </Alert>
 
         <Card variant="outlined">
           <CardContent>
             <Stack spacing={1}>
+              <Typography variant="body2" color="text.secondary">
+                {generationLabel}
+              </Typography>
               <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                 <Typography variant="h6">{selectedMember.name}</Typography>
                 <Chip label={selectedMember.part.jp} size="small" />
               </Stack>
-              <Typography variant="body2" color="text.secondary">
-                {generationLabel}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {selectedMember.nameKana}
-              </Typography>
+
               <Divider sx={{ my: 1 }} />
               <Typography variant="body2" color="text.secondary">
-                {selectedMember.felicaIdm ? `現在の登録IDm: ${selectedMember.felicaIdm}` : '未登録'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {isReading
-                  ? '読み取り中です。FeliCa リーダーにカードをかざしてください。'
-                  : '読み取り待機中です。'}
+                {selectedMember.felicaIdm ? `登録済` : '未登録'}
               </Typography>
               {isRegistering && <Typography variant="body2">登録処理を実行中です...</Typography>}
             </Stack>

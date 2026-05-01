@@ -24,6 +24,8 @@ export default class Attendance {
     public createdAt: Dayjs,
     public updatedAt: Dayjs,
     public memberId: string | null,
+    public firstTapAt: Dayjs | null,
+    public lastTapAt: Dayjs | null,
   ) {}
 
   static fromSchema(data: AttendanceResult) {
@@ -34,6 +36,8 @@ export default class Attendance {
       data.createdAt,
       data.updatedAt,
       data.memberId,
+      data.firstTapAt,
+      data.lastTapAt,
     );
   }
 
@@ -154,6 +158,14 @@ export const AttendanceSchema = z.object({
     .string()
     .transform((date) => parseDateTime(date)),
   memberId: z.string().uuid().nullable(),
+  firstTapAt: z
+    .string()
+    .transform((date) => parseDateTime(date))
+    .nullable(),
+  lastTapAt: z
+    .string()
+    .transform((date) => parseDateTime(date))
+    .nullable(),
 });
 export const AttendanceArraySchema = z.array(AttendanceSchema);
 export type AttendanceResult = z.infer<typeof AttendanceSchema>;

@@ -5,7 +5,9 @@ import { toast } from 'sonner';
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
+import Badge from '@mui/material/Badge';
 import Popover from '@mui/material/Popover';
+import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 
 import { useGrade } from 'src/hooks/grade';
@@ -35,12 +37,19 @@ interface AttendanceStatus {
 }
 
 const attendanceStatuses: Record<string, AttendanceStatus> = {
-  '出席': { label: '出席', style: 'bg-green-200 text-green-900', value: 1, counted: true },
-  '欠席': { label: '欠席', style: 'bg-red-200 text-red-900', value: 0, counted: true },
-  '遅刻': { label: '遅刻', style: 'bg-orange-200 text-orange-900', value: 0.5, counted: true },
-  '早退': { label: '早退', style: 'bg-amber-200 text-amber-900', value: 0.5, counted: true },
-  '講習': { label: '講習', style: 'bg-blue-200 text-blue-900', value: 1, counted: false },
-  '無欠': { label: '無欠', style: 'bg-[repeating-linear-gradient(45deg,#9b9162,#9b9162_8px,#646464_8px,#646464_16px)] text-white', value: 0, counted: true },
+  出席: { label: '出席', style: 'bg-green-200 text-green-900', value: 1, counted: true },
+  欠席: { label: '欠席', style: 'bg-red-200 text-red-900', value: 0, counted: true },
+  遅刻: { label: '遅刻', style: 'bg-orange-200 text-orange-900', value: 0.5, counted: true },
+  早退: { label: '早退', style: 'bg-amber-200 text-amber-900', value: 0.5, counted: true },
+  遅早: { label: '遅早', style: 'bg-purple-200 text-purple-900', value: 0.5, counted: true },
+  講習: { label: '講習', style: 'bg-blue-200 text-blue-900', value: 1, counted: false },
+  無欠: {
+    label: '無欠',
+    style:
+      'bg-[repeating-linear-gradient(45deg,#9b9162,#9b9162_8px,#646464_8px,#646464_16px)] text-white',
+    value: 0,
+    counted: true,
+  },
 };
 
 export const getAttendanceStyle = (label: string): string => {
@@ -76,6 +85,8 @@ export const AttendanceCellEditor = ({
 
   const [original, setOriginal] = useState('');
   const [update, setUpdate] = useState(false);
+
+  const isUncertain = attendance?.attendance === '遅早' && attendance.lastTapAt === null;
   
   const handleReset = () => {
     setValue('');
@@ -129,24 +140,35 @@ export const AttendanceCellEditor = ({
         horizontal: 'left',
       }}
       sx={{
-        "& .MuiPopover-paper": {
+        '& .MuiPopover-paper': {
           mt: 1,
         },
       }}
     >
       <div className="flex flex-col gap-2 p-1 relative w-24">
         <div className="flex gap-0.5">
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSave();
-              if (e.key === 'Escape') onClose();
-            }}
-            className="w-17 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500 flex-1"
-            placeholder="出欠を入力"
-          />
+          <Tooltip title="打刻が活動中の1回のみなので、正確な出欠ではない可能性があります。">
+            <Badge
+              badgeContent={isUncertain ? "!" : null}
+              color="warning"
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+            >
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSave();
+                  if (e.key === 'Escape') onClose();
+                }}
+                className="w-17 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500 flex-1"
+                placeholder="出欠を入力"
+              />
+            </Badge>
+          </Tooltip>
           <IconButton
             onClick={() => {
               onDelete();
@@ -157,6 +179,23 @@ export const AttendanceCellEditor = ({
             <Iconify icon="solar:trash-bin-minimalistic-2-bold" />
           </IconButton>
         </div>
+        {attendance && (attendance?.firstTapAt || attendance?.lastTapAt) && (
+          <div className="flex items-center">
+            {attendance?.firstTapAt && (
+              <p className="text-xs text-gray-500 flex-grow text-center">
+                <span className="mr-0.5">1回目</span>
+                <span>{attendance.firstTapAt.tz().format('HH:mm')}</span>
+              </p>
+            )}
+            {attendance?.lastTapAt && (
+              <p className="text-xs text-gray-500 flex-grow text-center">
+                <span className="mr-0.5">2回目</span>
+                <span>{attendance.lastTapAt.tz().format('HH:mm')}</span>
+              </p>
+            )}
+          </div>
+        )}
+
         {isPreMode && (
           <div className="w-full">
             <textarea
@@ -169,7 +208,7 @@ export const AttendanceCellEditor = ({
             />
           </div>
         )}
-        <div className="grid grid-cols-2 gap-1 max-h-[150px] overflow-y-auto">
+        <div className="grid grid-cols-2 gap-0.5 max-h-[150px] overflow-y-auto">
           {Object.entries(attendanceStatuses).map(([key, status]) => (
             <button
               key={key}
@@ -816,6 +855,9 @@ export const AttendanceTable = ({
                               const style = currentData ? getAttendanceStyle(currentData.attendance) : "bg-white text-gray-400 hover:bg-gray-100";
                               const value = currentData?.attendance || "-";
                               const showDifference = hasDifference(member, date);
+                              const isUncertain =
+                                currentData instanceof Attendance && currentData?.attendance === '遅早' &&
+                                currentData.lastTapAt === null;
 
                               // ツールチップメッセージ
                               const diffTooltip = displayMode === 'pre'
@@ -823,22 +865,33 @@ export const AttendanceTable = ({
                                 : `事前: ${preData?.attendance || '-'}`;
 
                               return (
-                                <td key={`${key}-${day}`} className="border border-gray-300 text-center p-0 h-4 relative">
+                                <td
+                                  key={`${key}-${day}`}
+                                  className="border border-gray-300 text-center p-0 h-4 relative"
+                                >
                                   {showDifference && (
                                     <div
                                       className="absolute top-0 left-0 w-0 h-0 border-t-[8px] border-t-red-600 border-r-[8px] border-r-transparent z-10"
                                       title={diffTooltip}
                                     />
                                   )}
+                                  {isUncertain && (
+                                    <div
+                                      className="absolute top-0 right-0 w-0 h-0 border-t-[8px] border-t-fuchsia-600 border-l-[8px] border-l-transparent z-10"
+                                      title={diffTooltip}
+                                    />
+                                  )}
                                   <button
-                                    onClick={(e) => setEditingCell({
-                                      member,
-                                      date,
-                                      attendance: actualData,
-                                      preAttendance: preData,
-                                      anchorEl: e.currentTarget,
-                                    })}
-                                    className={`${style} w-full h-full p-0 font-bold hover:opacity-80 transition-opacity${value.length > 2 ? " text-[10px]" : ""}${editingCell && editingCell.date.isSame(date) && editingCell.member.id === member.id ? ' border-2' : ''}`}
+                                    onClick={(e) =>
+                                      setEditingCell({
+                                        member,
+                                        date,
+                                        attendance: actualData,
+                                        preAttendance: preData,
+                                        anchorEl: e.currentTarget,
+                                      })
+                                    }
+                                    className={`${style} w-full h-full p-0 font-bold hover:opacity-80 transition-opacity${value.length > 2 ? ' text-[10px]' : ''}${editingCell && editingCell.date.isSame(date) && editingCell.member.id === member.id ? ' border-2' : ''}`}
                                     title={currentData?.attendance || '未登録'}
                                   >
                                     {value?.substring(0, 3) || '-'}
