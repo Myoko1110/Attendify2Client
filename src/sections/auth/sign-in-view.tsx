@@ -178,15 +178,6 @@ export function SignInView() {
           >
             Googleでログイン
           </Button>
-
-          <Link
-            underline="hover"
-            variant="body2"
-            onClick={() => setShowEmailLogin(true)}
-            sx={{ mt: 1, cursor: 'pointer' }}
-          >
-            権限なしでログインできない場合
-          </Link>
         </>
       ) : (
         <Stack spacing={2}>

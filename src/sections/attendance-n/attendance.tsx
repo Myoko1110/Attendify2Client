@@ -147,7 +147,7 @@ export const AttendanceCellEditor = ({
     >
       <div className="flex flex-col gap-2 p-1 relative w-24">
         <div className="flex gap-0.5">
-          <Tooltip title="打刻が活動中の1回のみなので、正確な出欠ではない可能性があります。">
+          <Tooltip title={isUncertain ? "打刻が活動中の1回のみであるため、正確な出欠ではない可能性があります。" : undefined}>
             <Badge
               badgeContent={isUncertain ? "!" : null}
               color="warning"
@@ -747,10 +747,23 @@ export const AttendanceTable = ({
 
                 if (!isExpanded) {
                   return (
-                    <th key={key} className="border border-gray-300 bg-indigo-100 hover:bg-indigo-200 w-[52px] md:w-[60px] h-8">
-                      <button onClick={() => toggleMonth(month)} className="text-blue-700 px-1 py-1 flex flex-col items-center w-full h-full cursor-pointer">
-                        <h1 className="font-bold text-lg">{month.month + 1}<span className="text-xs">月</span></h1>
-                        <div className={`mt-0.5 text-right ${(rate || 0) < 80 ? 'text-red-600' : 'text-blue-600'}`}>{rate && `${rate}%`}</div>
+                    <th
+                      key={key}
+                      className="border border-gray-300 bg-indigo-100 hover:bg-indigo-200 w-[52px] md:w-[60px] h-8"
+                    >
+                      <button
+                        onClick={() => toggleMonth(month)}
+                        className="text-blue-700 px-1 py-1 flex flex-col items-center w-full h-full cursor-pointer"
+                      >
+                        <h1 className="font-bold text-lg">
+                          {month.month + 1}
+                          <span className="text-xs">月</span>
+                        </h1>
+                        <div
+                          className={`mt-0.5 text-right ${(rate !== null ? rate : 1000) < 80 ? 'text-red-600' : 'text-blue-600'}`}
+                        >
+                          {rate !== null && `${rate}%`}
+                        </div>
                       </button>
                     </th>
                   );
@@ -760,18 +773,36 @@ export const AttendanceTable = ({
                 return (
                   <React.Fragment key={key}>
                     <th className="border border-gray-300 bg-indigo-100 hover:bg-indigo-200 w-[52px] md:w-[60px] h-8">
-                      <button onClick={() => toggleMonth(month)} className="text-blue-700 px-1 py-1 flex flex-col items-center w-full h-full cursor-pointer">
-                        <h1 className="font-bold text-lg">{month.month + 1}<span className="text-xs">月</span></h1>
-                        <div className={`mt-0.5 text-right ${(rate || 1000) < 80 ? 'text-red-600' : 'text-blue-600'}`}>{rate && `${rate}%`}</div>
+                      <button
+                        onClick={() => toggleMonth(month)}
+                        className="text-blue-700 px-1 py-1 flex flex-col items-center w-full h-full cursor-pointer"
+                      >
+                        <h1 className="font-bold text-lg">
+                          {month.month + 1}
+                          <span className="text-xs">月</span>
+                        </h1>
+                        <div
+                          className={`mt-0.5 text-right ${(rate !== null ? rate : 1000) < 80 ? 'text-red-600' : 'text-blue-600'}`}
+                        >
+                          {rate !== null && `${rate}%`}
+                        </div>
                       </button>
                     </th>
-                    {scheduledDays.map(day => {
+                    {scheduledDays.map((day) => {
                       const date = dayjs(new Date(month.year, month.month, day));
                       const dayRate = calcDayRate('all', null, date);
                       return (
-                        <th key={`${key}-${day}`} className="border border-gray-300 px-0.5 py-1 align-top w-[40px] bg-gray-50" ref={month.equals(currentMonth) ? currentMonthRef : null}>
+                        <th
+                          key={`${key}-${day}`}
+                          className="border border-gray-300 px-0.5 py-1 align-top w-[40px] bg-gray-50"
+                          ref={month.equals(currentMonth) ? currentMonthRef : null}
+                        >
                           <div className="font-bold text-base">{day}</div>
-                          <div className={`${(dayRate || 1000) < 80 ? 'text-red-600' : 'text-gray-600'} text-right`}>{dayRate && `${dayRate}%`}</div>
+                          <div
+                            className={`${(dayRate !== null ? dayRate : 1000) < 80 ? 'text-red-600' : 'text-gray-600'} text-right`}
+                          >
+                            {dayRate !== null && `${dayRate}%`}
+                          </div>
                         </th>
                       );
                     })}
@@ -799,8 +830,11 @@ export const AttendanceTable = ({
 
                       if (!isExpanded) {
                         return (
-                          <td key={key} className={`border border-gray-300 px-0.5 py-0.5 text-right bg-indigo-50 ${(rate || 1000) < 80 ? 'text-red-600' : ''}`}>
-                            {rate && `${rate}%`}
+                          <td
+                            key={key}
+                            className={`border border-gray-300 px-0.5 py-0.5 text-right bg-indigo-50 ${(rate !== null ? rate : 1000) < 80 ? 'text-red-600' : ''}`}
+                          >
+                            {rate !== null && `${rate}`}
                           </td>
                         );
                       }
@@ -808,13 +842,20 @@ export const AttendanceTable = ({
                       const scheduledDays = getScheduledDaysInMonth(month);
                       return (
                         <React.Fragment key={key}>
-                          <td className={`border border-gray-300 px-0.5 py-0.5 text-right bg-indigo-50 ${(rate || 1000) < 80 ? 'text-red-600' : ''}`}>{rate && `${rate}%`}</td>
-                          {scheduledDays.map(day => {
+                          <td
+                            className={`border border-gray-300 px-0.5 py-0.5 text-right bg-indigo-50 ${(rate !== null ? rate : 1000) < 80 ? 'text-red-600' : ''}`}
+                          >
+                            {rate && `${rate}`}
+                          </td>
+                          {scheduledDays.map((day) => {
                             const date = dayjs(new Date(month.year, month.month, day));
                             const dayRate = calcDayRate('part', partValue, date);
                             return (
-                              <td key={`${key}-${day}`} className={`border border-gray-300 px-0.5 py-0.5 text-right bg-indigo-50 ${(dayRate || 1000) < 80 ? 'text-red-600' : 'text-gray-600'}`}>
-                                {dayRate && `${dayRate}%`}
+                              <td
+                                key={`${key}-${day}`}
+                                className={`border border-gray-300 px-0.5 py-0.5 text-right bg-indigo-50 ${(dayRate !== null ? dayRate : 1000) < 80 ? 'text-red-600' : 'text-gray-600'}`}
+                              >
+                                {dayRate !== null && `${dayRate}`}
                               </td>
                             );
                           })}
@@ -835,8 +876,11 @@ export const AttendanceTable = ({
 
                         if (!isExpanded) {
                           return (
-                            <td key={key} className={`border border-gray-300 px-0.5 py-0.5 text-right ${(rate || 1000) < 80 ? ' text-red-600' : ''}`}>
-                              {!!rate && `${rate}%`}
+                            <td
+                              key={key}
+                              className={`border border-gray-300 px-0.5 py-0.5 text-right ${(rate !== null ? rate : 1000) < 80 ? ' text-red-600' : ''}`}
+                            >
+                              {rate !== null && `${rate}`}
                             </td>
                           );
                         }
@@ -844,25 +888,31 @@ export const AttendanceTable = ({
                         const scheduledDays = getScheduledDaysInMonth(month);
                         return (
                           <React.Fragment key={key}>
-                            <td className={`border border-gray-300 px-0.5 py-0.5 text-right${(rate || 1000) < 80 ? ' text-red-600' : ''}`}>
-                              {!!rate && `${rate}%`}
+                            <td
+                              className={`border border-gray-300 px-0.5 py-0.5 text-right${(rate !== null ? rate : 1000) < 80 ? ' text-red-600' : ''}`}
+                            >
+                              {rate !== null && `${rate}`}
                             </td>
-                            {scheduledDays.map(day => {
+                            {scheduledDays.map((day) => {
                               const date = dayjs(new Date(month.year, month.month, day));
                               const currentData = getCurrentAttendance(member, date);
                               const actualData = getAttendance(member, date);
                               const preData = getPreAttendance(member, date);
-                              const style = currentData ? getAttendanceStyle(currentData.attendance) : "bg-white text-gray-400 hover:bg-gray-100";
-                              const value = currentData?.attendance || "-";
+                              const style = currentData
+                                ? getAttendanceStyle(currentData.attendance)
+                                : 'bg-white text-gray-400 hover:bg-gray-100';
+                              const value = currentData?.attendance || '-';
                               const showDifference = hasDifference(member, date);
                               const isUncertain =
-                                currentData instanceof Attendance && currentData?.attendance === '遅早' &&
+                                currentData instanceof Attendance &&
+                                currentData?.attendance === '遅早' &&
                                 currentData.lastTapAt === null;
 
                               // ツールチップメッセージ
-                              const diffTooltip = displayMode === 'pre'
-                                ? `確定: ${actualData?.attendance || '-'}`
-                                : `事前: ${preData?.attendance || '-'}`;
+                              const diffTooltip =
+                                displayMode === 'pre'
+                                  ? `確定: ${actualData?.attendance || '-'}`
+                                  : `事前: ${preData?.attendance || '-'}`;
 
                               return (
                                 <td
